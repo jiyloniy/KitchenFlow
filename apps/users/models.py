@@ -9,7 +9,7 @@ class User(AbstractUser):
         CEO = 'ceo', 'CEO'
 
     name = models.CharField(max_length=120)
-    role = models.CharField(max_length=20, choices=Role.choices)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.CEO)
 
     def __str__(self):
         return f'{self.name} ({self.get_role_display()})'
