@@ -33,7 +33,7 @@ class Table(models.Model):
 
     category = models.ForeignKey(TableCategory, on_delete=models.PROTECT, related_name='tables')
     name = models.CharField(max_length=80)
-    number = models.PositiveIntegerField(unique=True)
+    number = models.PositiveIntegerField()
     capacity = models.PositiveSmallIntegerField(default=4)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.AVAILABLE)
     is_active = models.BooleanField(default=True)
