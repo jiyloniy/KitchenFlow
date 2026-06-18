@@ -1,0 +1,49 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}{{ title }} | KitchenFlow{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="form-section wide">
+    <form method="post" class="entity-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="form-card">
+            <div class="form-card-head">
+                <p class="eyebrow">Stol kategoriyasi</p>
+                <h2>Kategoriya ma’lumotlari</h2>
+            </div>
+
+            <div class="form-grid single">
+                <div class="field">
+                    <label for="{{ form.name.id_for_label }}">Kategoriya nomi</label>
+                    {{ form.name }}
+                    {{ form.name.errors }}
+                </div>
+                <div class="field">
+                    <label for="{{ form.description.id_for_label }}">Izoh</label>
+                    {{ form.description }}
+                    {{ form.description.errors }}
+                </div>
+            </div>
+
+            <label class="switch-row">
+                {{ form.is_active }}
+                <span>
+                    <strong>Kategoriya faol</strong>
+                    <small>O‘chirilsa kategoriyaga yangi stol biriktirish tavsiya etilmaydi.</small>
+                </span>
+            </label>
+        </div>
+
+        <div class="form-actions">
+            <a class="ghost-button" href="{% url 'table-category-list' %}">Bekor qilish</a>
+            <button type="submit" class="primary-button">{{ button_text }}</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Hodimni o‘chirish | KitchenFlow{% endblock %}
+{% block page_title %}Hodimni o‘chirish{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <h2>{{ employee.name }} o‘chirilsinmi?</h2>
+    <p>{{ employee.username }} hisobini o‘chirsangiz, u panel va API orqali tizimga kira olmaydi.</p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <a class="ghost-button" href="{% url 'employee-list' %}">Bekor qilish</a>
+        <button type="submit" class="danger-submit">O‘chirish</button>
+    </form>
+</section>
+{% endblock %}

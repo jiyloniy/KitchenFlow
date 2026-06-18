@@ -1,0 +1,17 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Kategoriyani o‘chirish | KitchenFlow{% endblock %}
+{% block page_title %}Kategoriyani o‘chirish{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <h2>{{ category.name }} o‘chirilsinmi?</h2>
+    <p>Kategoriya ichida mahsulot bo‘lsa, o‘chirish bloklanadi.</p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <a class="ghost-button" href="{% url 'category-list' %}">Bekor qilish</a>
+        <button type="submit" class="danger-submit">O‘chirish</button>
+    </form>
+</section>
+{% endblock %}

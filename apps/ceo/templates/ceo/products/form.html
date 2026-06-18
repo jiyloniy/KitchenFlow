@@ -1,0 +1,142 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}{{ title }} | KitchenFlow{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="form-section wide">
+    <form method="post" enctype="multipart/form-data" class="entity-form wide-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="form-layout">
+            <div class="form-card">
+                <div class="form-card-head">
+                    <p class="eyebrow">Asosiy ma’lumot</p>
+                    <h2>Mahsulot ma’lumotlari</h2>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="{{ form.category.id_for_label }}">Kategoriya</label>
+                        {{ form.category }}
+                        {{ form.category.errors }}
+                    </div>
+                    <div class="field">
+                        <label for="{{ form.price.id_for_label }}">Narx</label>
+                        {{ form.price }}
+                        {{ form.price.errors }}
+                    </div>
+                    <div class="field span-2">
+                        <label for="{{ form.name.id_for_label }}">Mahsulot nomi</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+                    <div class="field span-2">
+                        <label for="{{ form.description.id_for_label }}">Izoh</label>
+                        {{ form.description }}
+                        {{ form.description.errors }}
+                    </div>
+                </div>
+
+                <label class="switch-row">
+                    {{ form.is_active }}
+                    <span>
+                        <strong>Mahsulot sotuvda</strong>
+                        <small>O‘chirilsa API’da qoladi, lekin sotuv filterida ajraladi.</small>
+                    </span>
+                </label>
+            </div>
+
+            <aside class="form-card media-card">
+                <div class="form-card-head">
+                    <p class="eyebrow">Rasmlar</p>
+                    <h2>Ko‘rinish</h2>
+                </div>
+
+                <div class="preview-product-card">
+                    {% if product and product.banner_image %}
+                        <img src="{{ product.banner_image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <div class="preview-empty">Rasm yuklang</div>
+                    {% endif %}
+                    <dl>
+                        <div>
+                            <dt>Kategoriya</dt>
+                            <dd>{{ product.category.name|default:'-' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Narx</dt>
+                            <dd>{% if product %}{{ product.price }} so‘m{% else %}-{% endif %}</dd>
+                        </div>
+                        <div>
+                            <dt>Mahsulot nomi</dt>
+                            <dd>{{ product.name|default:'-' }}</dd>
+                        </div>
+                        <div>
+                            <dt>Holat</dt>
+                            <dd>{% if product and product.is_active %}Sotuvda{% elif product %}Sotuvda emas{% else %}-{% endif %}</dd>
+                        </div>
+                    </dl>
+                </div>
+
+                <div class="field upload-field">
+                    <label for="{{ form.banner_image.id_for_label }}">Asosiy banner rasm</label>
+                    {{ form.banner_image }}
+                    {{ form.banner_image.errors }}
+                </div>
+
+                {% if product and product.banner_image %}
+                    <div class="preview-block compact">
+                        <p class="preview-title">Hozirgi banner</p>
+                        <img class="banner-preview" src="{{ product.banner_image.url }}" alt="{{ product.name }}">
+                    </div>
+                {% endif %}
+
+                <div class="field upload-field">
+                    <label for="{{ form.gallery_images.id_for_label }}">Qo‘shimcha rasmlar</label>
+                    {{ form.gallery_images }}
+                    <small>{{ form.gallery_images.help_text }}</small>
+                    {{ form.gallery_images.errors }}
+                </div>
+
+                {% if product and product.images.exists %}
+                    <div class="preview-block compact">
+                        <p class="preview-title">Rasmlar</p>
+                        <div class="gallery-grid">
+                            {% for image in product.images.all %}
+                                <figure class="gallery-item">
+                                    <img src="{{ image.image.url }}" alt="{{ image.alt_text|default:product.name }}">
+                                    <button
+                                        type="submit"
+                                        form="delete-image-{{ image.pk }}"
+                                        class="mini-danger"
+                                    >
+                                        O‘chirish
+                                    </button>
+                                </figure>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </aside>
+        </div>
+
+        <div class="form-actions">
+            <a class="ghost-button" href="{% url 'product-list' %}">Bekor qilish</a>
+            <button type="submit" class="primary-button">{{ button_text }}</button>
+        </div>
+    </form>
+
+    {% if product and product.images.exists %}
+        {% for image in product.images.all %}
+            <form id="delete-image-{{ image.pk }}" method="post" action="{% url 'product-image-delete' image.pk %}">
+                {% csrf_token %}
+            </form>
+        {% endfor %}
+    {% endif %}
+</section>
+{% endblock %}

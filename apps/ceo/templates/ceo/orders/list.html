@@ -1,0 +1,96 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Zakazlar | KitchenFlow{% endblock %}
+{% block page_title %}Zakazlar{% endblock %}
+
+{% block content %}
+<section class="product-hero">
+    <article class="hero-stat dark-card">
+        <span>Jami zakazlar</span>
+        <strong>{{ total_count }}</strong>
+        <small>Sotuv oqimi</small>
+    </article>
+    <article class="hero-stat">
+        <span>Ochiq</span>
+        <strong>{{ open_count }}</strong>
+        <small>Jarayonda</small>
+    </article>
+    <article class="hero-stat">
+        <span>Yopiq</span>
+        <strong>{{ closed_count }}</strong>
+        <small>Tugatilgan</small>
+    </article>
+    <article class="hero-stat">
+        <span>Bekor qilingan</span>
+        <strong>{{ cancelled_count }}</strong>
+        <small>Bekor</small>
+    </article>
+</section>
+
+<section class="content-section">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Zakaz boshqaruvi</p>
+            <h2>Zakazlar ro‘yxati</h2>
+        </div>
+        <a class="primary-button" href="{% url 'order-create' %}">Yangi zakaz</a>
+    </div>
+
+    <form method="get" class="toolbar product-toolbar">
+        <div class="search-box">
+            <span>Qidirish</span>
+            <input type="search" name="q" value="{{ query }}" placeholder="Mijoz ismi">
+        </div>
+        <div class="select-box">
+            <span>Turi</span>
+            <select name="type">
+                <option value="all" {% if order_type == 'all' %}selected{% endif %}>Hammasi</option>
+                <option value="saboy" {% if order_type == 'saboy' %}selected{% endif %}>Saboy</option>
+                <option value="dine_in" {% if order_type == 'dine_in' %}selected{% endif %}>Oshxonani o‘zida</option>
+            </select>
+        </div>
+        <div class="select-box">
+            <span>Holat</span>
+            <select name="status">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Hammasi</option>
+                <option value="open" {% if status == 'open' %}selected{% endif %}>Ochiq</option>
+                <option value="closed" {% if status == 'closed' %}selected{% endif %}>Yopiq</option>
+                <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Bekor qilindi</option>
+            </select>
+        </div>
+        <button type="submit" class="primary-button">Saralash</button>
+        <a class="ghost-button" href="{% url 'order-list' %}">Tozalash</a>
+    </form>
+
+    <div class="order-card-grid">
+        {% for order in orders %}
+            <article class="order-card">
+                <div class="order-card-head">
+                    <div>
+                        <span class="order-code-label">Zakaz kodi</span>
+                        <strong class="order-code">{{ order.display_code }}</strong>
+                    </div>
+                    <span class="status-pill order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+                </div>
+                <h3>{{ order.customer_name|default:'Mijoz nomi yo‘q' }}</h3>
+                <div class="table-meta">
+                    <span>{{ order.get_order_type_display }}</span>
+                    <span>{% if order.table %}{{ order.table.name }}{% else %}Stolsiz{% endif %}</span>
+                    <span>{{ order.items.count }} ta mahsulot</span>
+                </div>
+                <div class="order-total">
+                    <small>Jami summa</small>
+                    <strong>{{ order.total_amount }} so‘m</strong>
+                </div>
+                <p>{{ order.created_at|date:'d.m.Y H:i' }}</p>
+                <div class="card-actions">
+                    <a class="text-button" href="{% url 'order-update' order.pk %}">Tahrirlash</a>
+                    <a class="danger-button" href="{% url 'order-delete' order.pk %}">O‘chirish</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-panel">Zakazlar yo‘q.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,95 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Bosh sahifa | KitchenFlow{% endblock %}
+{% block page_title %}CEO bosh sahifa{% endblock %}
+
+{% block content %}
+<section class="metric-grid">
+    <article class="metric-card dark-card">
+        <span>Jami hodimlar</span>
+        <strong>{{ total_employees }}</strong>
+        <small>+8.30% bu oy</small>
+    </article>
+    <article class="metric-card">
+        <span>Ofitsiantlar</span>
+        <strong>{{ waiters_count }}</strong>
+        <small>Xizmat jamoasi</small>
+    </article>
+    <article class="metric-card">
+        <span>Kassirlar</span>
+        <strong>{{ cashiers_count }}</strong>
+        <small>Kassa nazorati</small>
+    </article>
+    <article class="metric-card">
+        <span>CEO</span>
+        <strong>{{ ceos_count }}</strong>
+        <small>Boshqaruv</small>
+    </article>
+    <article class="metric-card">
+        <span>Kategoriyalar</span>
+        <strong>{{ categories_count }}</strong>
+        <small>Menu bo‘limlari</small>
+    </article>
+    <article class="metric-card">
+        <span>Mahsulotlar</span>
+        <strong>{{ products_count }}</strong>
+        <small>Sotuv productlari</small>
+    </article>
+    <article class="metric-card">
+        <span>Stollar</span>
+        <strong>{{ tables_count }}</strong>
+        <small>Restoran xaritasi</small>
+    </article>
+    <article class="metric-card">
+        <span>Stol kategoriyalari</span>
+        <strong>{{ table_categories_count }}</strong>
+        <small>Zal bo‘limlari</small>
+    </article>
+    <article class="metric-card">
+        <span>Zakazlar</span>
+        <strong>{{ orders_count }}</strong>
+        <small>Sotuv jarayoni</small>
+    </article>
+</section>
+
+<section class="content-section">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Hodimlar</p>
+            <h2>Oxirgi qo‘shilganlar</h2>
+        </div>
+        <a class="primary-button" href="{% url 'employee-create' %}">Yangi hodim</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ism</th>
+                    <th>Foydalanuvchi nomi</th>
+                    <th>Lavozim</th>
+                    <th>Holat</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in recent_employees %}
+                    <tr>
+                        <td>{{ employee.name }}</td>
+                        <td>{{ employee.username }}</td>
+                        <td>{{ employee.get_role_display }}</td>
+                        <td>
+                            <span class="status-pill {% if employee.is_active %}on{% else %}off{% endif %}">
+                                {% if employee.is_active %}Faol{% else %}O‘chiq{% endif %}
+                            </span>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="4" class="empty-cell">Hali hodim qo‘shilmagan.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

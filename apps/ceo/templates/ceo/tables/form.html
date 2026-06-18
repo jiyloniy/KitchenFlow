@@ -1,0 +1,84 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}{{ title }} | KitchenFlow{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<section class="form-section wide">
+    <form method="post" class="entity-form wide-form">
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            <div class="form-error">{{ form.non_field_errors.0 }}</div>
+        {% endif %}
+
+        <div class="form-layout">
+            <div class="form-card">
+                <div class="form-card-head">
+                    <p class="eyebrow">Stol</p>
+                    <h2>Stol ma’lumotlari</h2>
+                </div>
+
+                <div class="form-grid">
+                    <div class="field">
+                        <label for="{{ form.category.id_for_label }}">Kategoriya</label>
+                        {{ form.category }}
+                        {{ form.category.errors }}
+                    </div>
+                    <div class="field">
+                        <label for="{{ form.status.id_for_label }}">Holat</label>
+                        {{ form.status }}
+                        {{ form.status.errors }}
+                    </div>
+                    <div class="field">
+                        <label for="{{ form.name.id_for_label }}">Stol nomi</label>
+                        {{ form.name }}
+                        {{ form.name.errors }}
+                    </div>
+                    <div class="field">
+                        <label for="{{ form.number.id_for_label }}">Stol raqami</label>
+                        {{ form.number }}
+                        {{ form.number.errors }}
+                    </div>
+                    <div class="field">
+                        <label for="{{ form.capacity.id_for_label }}">Sig‘im</label>
+                        {{ form.capacity }}
+                        {{ form.capacity.errors }}
+                    </div>
+                    <div class="field span-2">
+                        <label for="{{ form.note.id_for_label }}">Izoh</label>
+                        {{ form.note }}
+                        {{ form.note.errors }}
+                    </div>
+                </div>
+
+                <label class="switch-row">
+                    {{ form.is_active }}
+                    <span>
+                        <strong>Stol faol</strong>
+                        <small>O‘chirilsa stol boshqaruvda qoladi, lekin ishlatilmaydi.</small>
+                    </span>
+                </label>
+            </div>
+
+            <aside class="form-card media-card">
+                <div class="form-card-head">
+                    <p class="eyebrow">Ko‘rinish</p>
+                    <h2>Stol kartasi</h2>
+                </div>
+                <div class="table-preview-card">
+                    <span class="table-badge">{% if table %}{{ table.number }}{% else %}№{% endif %}</span>
+                    <h3>{% if table %}{{ table.name }}{% else %}Yangi stol{% endif %}</h3>
+                    <p>{% if table %}{{ table.category.name }}{% else %}Kategoriya tanlang{% endif %}</p>
+                    <strong>{% if table %}{{ table.capacity }} kishi{% else %}Sig‘im{% endif %}</strong>
+                </div>
+            </aside>
+        </div>
+
+        <div class="form-actions">
+            <a class="ghost-button" href="{% url 'table-list' %}">Bekor qilish</a>
+            <button type="submit" class="primary-button">{{ button_text }}</button>
+        </div>
+    </form>
+</section>
+{% endblock %}

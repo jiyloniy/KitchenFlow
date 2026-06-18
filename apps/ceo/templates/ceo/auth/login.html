@@ -1,0 +1,35 @@
+{% extends 'ceo/base.html' %}
+
+{% block title %}CEO Login | KitchenFlow{% endblock %}
+
+{% block body %}
+<main class="login-page">
+    <section class="login-panel">
+        <div class="login-copy">
+            <span class="brand-mark large">K</span>
+            <p class="eyebrow">KitchenFlow</p>
+            <h1>CEO panelga kirish</h1>
+            <p>Restoran boshqaruvi, hodimlar va keyingi dashboard modullari shu paneldan yuritiladi.</p>
+        </div>
+
+        <form method="post" class="login-card">
+            {% csrf_token %}
+            <h2>Login</h2>
+
+            {% if form.non_field_errors %}
+                <div class="form-error">{{ form.non_field_errors.0 }}</div>
+            {% endif %}
+
+            <label for="{{ form.username.id_for_label }}">Foydalanuvchi nomi</label>
+            {{ form.username }}
+            {{ form.username.errors }}
+
+            <label for="{{ form.password.id_for_label }}">Password</label>
+            {{ form.password }}
+            {{ form.password.errors }}
+
+            <button type="submit" class="primary-button full">Kirish</button>
+        </form>
+    </section>
+</main>
+{% endblock %}

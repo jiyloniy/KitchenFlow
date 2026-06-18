@@ -1,0 +1,96 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Stollar | KitchenFlow{% endblock %}
+{% block page_title %}Stollar{% endblock %}
+
+{% block content %}
+<section class="product-hero">
+    <article class="hero-stat dark-card">
+        <span>Jami stollar</span>
+        <strong>{{ total_count }}</strong>
+        <small>Restoran zali</small>
+    </article>
+    <article class="hero-stat">
+        <span>Bo‘sh</span>
+        <strong>{{ available_count }}</strong>
+        <small>Mijoz qabul qiladi</small>
+    </article>
+    <article class="hero-stat">
+        <span>Band</span>
+        <strong>{{ busy_count }}</strong>
+        <small>Hozir ishlatilmoqda</small>
+    </article>
+    <article class="hero-stat">
+        <span>Bron</span>
+        <strong>{{ reserved_count }}</strong>
+        <small>Oldindan band</small>
+    </article>
+</section>
+
+<section class="content-section">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Restoran xaritasi</p>
+            <h2>Stollar ro‘yxati</h2>
+        </div>
+        <a class="primary-button" href="{% url 'table-create' %}">Yangi stol</a>
+    </div>
+
+    <form method="get" class="toolbar product-toolbar">
+        <div class="search-box">
+            <span>Qidirish</span>
+            <input type="search" name="q" value="{{ query }}" placeholder="Stol nomi">
+        </div>
+        <div class="select-box">
+            <span>Kategoriya</span>
+            <select name="category">
+                <option value="all">Hammasi</option>
+                {% for category in categories %}
+                    <option value="{{ category.pk }}" {% if category_id == category.pk|stringformat:'s' %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="select-box">
+            <span>Holat</span>
+            <select name="status">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Hammasi</option>
+                <option value="available" {% if status == 'available' %}selected{% endif %}>Bo‘sh</option>
+                <option value="busy" {% if status == 'busy' %}selected{% endif %}>Band</option>
+                <option value="reserved" {% if status == 'reserved' %}selected{% endif %}>Bron</option>
+                <option value="disabled" {% if status == 'disabled' %}selected{% endif %}>O‘chiq</option>
+            </select>
+        </div>
+        <button type="submit" class="primary-button">Saralash</button>
+        <a class="ghost-button" href="{% url 'table-list' %}">Tozalash</a>
+    </form>
+
+    <div class="table-card-grid">
+        {% for table in tables %}
+            <article class="table-card">
+                <div class="table-card-head">
+                    <span class="table-badge">{{ table.number }}</span>
+                    <span class="status-pill table-status-{{ table.status }}">{{ table.get_status_display }}</span>
+                </div>
+                <h3>{{ table.name }}</h3>
+                <div class="table-meta">
+                    <span>{{ table.category.name }}</span>
+                    <span>{{ table.capacity }} kishi</span>
+                </div>
+                {% if table.note %}
+                    <p>{{ table.note|truncatechars:80 }}</p>
+                {% else %}
+                    <p>Izoh yo‘q.</p>
+                {% endif %}
+                <div class="card-actions">
+                    <a class="text-button" href="{% url 'table-update' table.pk %}">Tahrirlash</a>
+                    <a class="danger-button" href="{% url 'table-delete' table.pk %}">O‘chirish</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-panel">Stollar yo‘q.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

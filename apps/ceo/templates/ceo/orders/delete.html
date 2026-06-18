@@ -1,0 +1,17 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Zakazni o‘chirish | KitchenFlow{% endblock %}
+{% block page_title %}Zakazni o‘chirish{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <h2>Zakaz #{{ order.id }} o‘chirilsinmi?</h2>
+    <p>Jami summa: {{ order.total_amount }} so‘m. Bu amal ortga qaytarilmaydi.</p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <a class="ghost-button" href="{% url 'order-list' %}">Bekor qilish</a>
+        <button type="submit" class="danger-submit">O‘chirish</button>
+    </form>
+</section>
+{% endblock %}

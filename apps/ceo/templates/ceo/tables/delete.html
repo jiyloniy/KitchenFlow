@@ -1,0 +1,17 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Stolni o‘chirish | KitchenFlow{% endblock %}
+{% block page_title %}Stolni o‘chirish{% endblock %}
+
+{% block content %}
+<section class="delete-panel">
+    <h2>{{ table.name }} o‘chirilsinmi?</h2>
+    <p>Stol raqami: {{ table.number }}. Bu amal ortga qaytarilmaydi.</p>
+
+    <form method="post" class="form-actions">
+        {% csrf_token %}
+        <a class="ghost-button" href="{% url 'table-list' %}">Bekor qilish</a>
+        <button type="submit" class="danger-submit">O‘chirish</button>
+    </form>
+</section>
+{% endblock %}

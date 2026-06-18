@@ -1,0 +1,52 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Hodimlar | KitchenFlow{% endblock %}
+{% block page_title %}Hodimlar{% endblock %}
+
+{% block content %}
+<section class="content-section">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Boshqaruv</p>
+            <h2>Hodimlar ro‘yxati</h2>
+        </div>
+        <a class="primary-button" href="{% url 'employee-create' %}">Yangi hodim</a>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Ism</th>
+                    <th>Foydalanuvchi nomi</th>
+                    <th>Lavozim</th>
+                    <th>Holat</th>
+                    <th class="actions-col">Amallar</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for employee in employees %}
+                    <tr>
+                        <td>{{ employee.name }}</td>
+                        <td>{{ employee.username }}</td>
+                        <td>{{ employee.get_role_display }}</td>
+                        <td>
+                            <span class="status-pill {% if employee.is_active %}on{% else %}off{% endif %}">
+                                {% if employee.is_active %}Faol{% else %}O‘chiq{% endif %}
+                            </span>
+                        </td>
+                        <td class="actions">
+                            <a class="text-button" href="{% url 'employee-update' employee.pk %}">Tahrirlash</a>
+                            <a class="danger-button" href="{% url 'employee-delete' employee.pk %}">O‘chirish</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5" class="empty-cell">Hodimlar yo‘q.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

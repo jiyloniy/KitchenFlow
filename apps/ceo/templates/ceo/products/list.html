@@ -1,0 +1,104 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Mahsulotlar | KitchenFlow{% endblock %}
+{% block page_title %}Mahsulotlar{% endblock %}
+
+{% block content %}
+<section class="product-hero">
+    <article class="hero-stat dark-card">
+        <span>Sotuvdagi mahsulotlar</span>
+        <strong>{{ active_count }}</strong>
+        <small>↗ +8.30%</small>
+    </article>
+    <article class="hero-stat">
+        <span>Jami mahsulotlar</span>
+        <strong>{{ total_count }}</strong>
+        <small>Katalog</small>
+    </article>
+    <article class="hero-stat">
+        <span>Kategoriyalar</span>
+        <strong>{{ categories_count }}</strong>
+        <small>Bo‘limlar</small>
+    </article>
+    <article class="hero-stat">
+        <span>Sotuvda emas</span>
+        <strong>{{ inactive_count }}</strong>
+        <small>Sotuvda emas</small>
+    </article>
+</section>
+
+<section class="content-section">
+    <div class="section-head">
+        <div>
+            <p class="eyebrow">Sotuv mahsulotlari</p>
+            <h2>Mahsulotlar ro‘yxati</h2>
+        </div>
+        <a class="primary-button" href="{% url 'product-create' %}">Yangi mahsulot</a>
+    </div>
+
+    <form method="get" class="toolbar product-toolbar">
+        <div class="search-box">
+            <span>Qidirish</span>
+            <input type="search" name="q" value="{{ query }}" placeholder="Mahsulot nomi">
+        </div>
+        <div class="select-box">
+            <span>Kategoriya</span>
+            <select name="category">
+                <option value="all">Hammasi</option>
+                {% for category in categories %}
+                    <option value="{{ category.pk }}" {% if category_id == category.pk|stringformat:'s' %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="select-box">
+            <span>Holat</span>
+            <select name="status">
+                <option value="all" {% if status == 'all' %}selected{% endif %}>Hammasi</option>
+                <option value="active" {% if status == 'active' %}selected{% endif %}>Sotuvda</option>
+                <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Sotuvda emas</option>
+            </select>
+        </div>
+        <button type="submit" class="primary-button">Saralash</button>
+        <a class="ghost-button" href="{% url 'product-list' %}">Tozalash</a>
+    </form>
+
+    <div class="product-grid">
+        {% for product in products %}
+            <article class="product-card">
+                <a class="product-image-link" href="{% url 'product-update' product.pk %}">
+                    {% if product.banner_image %}
+                        <img src="{{ product.banner_image.url }}" alt="{{ product.name }}">
+                    {% else %}
+                        <span>Rasm yo‘q</span>
+                    {% endif %}
+                </a>
+                <div class="product-card-body">
+                    <div>
+                        <strong>{{ product.name }}</strong>
+                        <small>{{ product.category.name }}</small>
+                    </div>
+                    <button class="more-button" type="button">⋮</button>
+                </div>
+                <div class="product-card-foot">
+                    <span>Narx {{ product.price }} so‘m</span>
+                    <form method="post" action="{% url 'product-toggle' product.pk %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                        <button type="submit" class="mini-toggle {% if product.is_active %}on{% endif %}">
+                            {% if product.is_active %}Bor{% else %}Yo‘q{% endif %}
+                        </button>
+                    </form>
+                </div>
+                <div class="card-actions">
+                    <a class="text-button" href="{% url 'product-update' product.pk %}">Tahrirlash</a>
+                    <a class="danger-button" href="{% url 'product-delete' product.pk %}">O‘chirish</a>
+                </div>
+            </article>
+        {% empty %}
+            <div class="empty-panel">Mahsulotlar yo‘q.</div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
