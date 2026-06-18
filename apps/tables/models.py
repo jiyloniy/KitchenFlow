@@ -3,8 +3,8 @@ from django.utils.text import slugify
 
 
 class TableCategory(models.Model):
-    name = models.CharField(max_length=120, unique=True)
-    slug = models.SlugField(max_length=140, unique=True, blank=True)
+    name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=140)
     description = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
