@@ -1,0 +1,144 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Mahsulot Hisobot | KitchenFlow{% endblock %}
+{% block page_title %}Mahsulot Hisobot{% endblock %}
+
+{% block head_extra %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<section class="report-filter-band">
+    <div class="period-tabs" aria-label="Hisobot davri">
+        <a class="{% if period == 'today' %}active{% endif %}" href="?period=today{% if selected_category %}&category={{ selected_category.name|urlencode }}{% endif %}{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Bugun</a>
+        <a class="{% if period == '7d' %}active{% endif %}" href="?period=7d{% if selected_category %}&category={{ selected_category.name|urlencode }}{% endif %}{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">7 kun</a>
+        <a class="{% if period == '30d' %}active{% endif %}" href="?period=30d{% if selected_category %}&category={{ selected_category.name|urlencode }}{% endif %}{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">30 kun</a>
+        <a class="{% if period == 'all' %}active{% endif %}" href="?period=all{% if selected_category %}&category={{ selected_category.name|urlencode }}{% endif %}{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Barchasi</a>
+    </div>
+    <form method="get" class="report-filter-form product-analytics-filter">
+        <div class="field compact-field">
+            <label for="product-date-from">Dan</label>
+            <input id="product-date-from" type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+        </div>
+        <div class="field compact-field">
+            <label for="product-date-to">Gacha</label>
+            <input id="product-date-to" type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+        </div>
+        <div class="field compact-field">
+            <label for="product-category">Kategoriya</label>
+            <select id="product-category" name="category">
+                <option value="">Barcha kategoriyalar</option>
+                {% for category in categories %}
+                    <option value="{{ category.name }}" {% if selected_category.pk == category.pk %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field compact-field">
+            <label for="product-product">Mahsulot</label>
+            <select id="product-product" name="product">
+                <option value="">Barcha mahsulotlar</option>
+                {% for product in products %}
+                    <option value="{{ product.pk }}" {% if selected_product.pk == product.pk %}selected{% endif %}>{{ product.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="primary-button" type="submit"><i data-lucide="filter"></i><span>Ko‘rsatish</span></button>
+    </form>
+</section>
+
+<section class="report-summary product-report-summary" aria-label="Mahsulot ko‘rsatkichlari">
+    <div><span>Mahsulot savdosi</span><strong>{{ revenue_total }} so‘m</strong><small>Snapshot itemlar summasi</small></div>
+    <div><span>Sotilgan dona</span><strong>{{ quantity_total }} ta</strong><small>Barcha mahsulotlar</small></div>
+    <div><span>Mahsulotlar</span><strong>{{ product_count }}</strong><small>Sotilgan tur soni</small></div>
+    <div><span>O‘rtacha dona narxi</span><strong>{{ average_unit_price|floatformat:2 }} so‘m</strong><small>Savdo / dona</small></div>
+    <div><span>Paymentlar</span><strong>{{ payment_count }}</strong><small>Qatnashgan cheklar</small></div>
+</section>
+
+{% if top_product %}
+<section class="top-product-band">
+    <span class="top-product-icon"><i data-lucide="trophy"></i></span>
+    <div><small>Eng ko‘p tushum bergan mahsulot</small><strong>{{ top_product.product_name }}</strong><span>{{ top_product.quantity }} ta sotildi</span></div>
+    <strong>{{ top_product.revenue }} so‘m</strong>
+</section>
+{% endif %}
+
+<section class="report-section trend-section">
+    <div class="section-head compact-head">
+        <div><p class="eyebrow">Vaqt dinamikasi</p><h2>Mahsulot savdosi va sotilgan dona</h2></div>
+        <span class="report-range">{% if date_from %}{{ date_from|date:'d.m.Y' }}{% else %}Birinchi savdodan{% endif %} — {{ date_to|date:'d.m.Y' }}</span>
+    </div>
+    <div class="trend-canvas-wrap"><canvas id="product-trend-chart"></canvas></div>
+</section>
+
+<div class="report-breakdown-grid">
+    <section class="report-section">
+        <div class="section-head compact-head"><div><p class="eyebrow">Kategoriya</p><h2>Kategoriya kesimi</h2></div></div>
+        <div class="analytics-list">
+            {% for row in category_rows %}
+                <div><span><strong>{{ row.category_name|default:'Kategoriyasiz' }}</strong><small>{{ row.product_count }} tur · {{ row.quantity }} ta</small></span><span><strong>{{ row.revenue }} so‘m</strong><small>{{ row.share }}%</small></span></div>
+            {% empty %}<div class="empty-panel">Ma’lumot yo‘q.</div>{% endfor %}
+        </div>
+    </section>
+    <section class="report-section">
+        <div class="section-head compact-head"><div><p class="eyebrow">Payment turi</p><h2>To‘lov kesimi</h2></div></div>
+        <div class="analytics-list">
+            {% for row in method_rows %}
+                <div><span><strong>{{ row.label }}</strong><small>{{ row.quantity }} ta mahsulot</small></span><span><strong>{{ row.revenue }} so‘m</strong><small>{{ row.share }}%</small></span></div>
+            {% empty %}<div class="empty-panel">Ma’lumot yo‘q.</div>{% endfor %}
+        </div>
+    </section>
+    <section class="report-section">
+        <div class="section-head compact-head"><div><p class="eyebrow">Zakaz turi</p><h2>Zakaz kesimi</h2></div></div>
+        <div class="analytics-list">
+            {% for row in order_type_rows %}
+                <div><span><strong>{{ row.label }}</strong><small>{{ row.quantity }} ta mahsulot</small></span><span><strong>{{ row.revenue }} so‘m</strong><small>{{ row.share }}%</small></span></div>
+            {% empty %}<div class="empty-panel">Ma’lumot yo‘q.</div>{% endfor %}
+        </div>
+    </section>
+</div>
+
+<section class="report-section product-sales-section">
+    <div class="section-head compact-head">
+        <div><p class="eyebrow">Product ranking</p><h2>Mahsulotlar bo‘yicha to‘liq statistika</h2></div>
+        <span class="soft-pill">{{ product_rows|length }} ta mahsulot</span>
+    </div>
+    <div class="table-wrap modern-table">
+        <table>
+            <thead><tr><th>#</th><th>Mahsulot</th><th>Kategoriya</th><th>Sotilgan</th><th>Paymentlar</th><th>O‘rtacha narx</th><th>Jami savdo</th></tr></thead>
+            <tbody>
+                {% for row in product_rows %}
+                    <tr><td>{{ forloop.counter }}</td><td><strong>{{ row.product_name }}</strong></td><td>{{ row.category_name|default:'—' }}</td><td>{{ row.quantity }} ta</td><td>{{ row.payment_count }} ta</td><td>{{ row.average_price|floatformat:2 }} so‘m</td><td><strong>{{ row.revenue }} so‘m</strong></td></tr>
+                {% empty %}<tr><td colspan="7" class="empty-cell">Tanlangan filtrda savdo yo‘q.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{{ trend_labels|json_script:'product-trend-labels' }}
+{{ trend_revenue|json_script:'product-trend-revenue' }}
+{{ trend_quantity|json_script:'product-trend-quantity' }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const canvas = document.getElementById('product-trend-chart');
+        if (!canvas || !window.Chart) return;
+        const labels = JSON.parse(document.getElementById('product-trend-labels').textContent);
+        const revenue = JSON.parse(document.getElementById('product-trend-revenue').textContent);
+        const quantity = JSON.parse(document.getElementById('product-trend-quantity').textContent);
+        new Chart(canvas, {
+            type: 'line',
+            data: { labels: labels, datasets: [
+                { label: 'Savdo summasi', data: revenue, borderColor: '#f28a00', backgroundColor: 'rgba(242,138,0,.08)', yAxisID: 'y', borderWidth: 2, tension: .3, fill: true, pointRadius: labels.length > 45 ? 0 : 3 },
+                { label: 'Sotilgan dona', data: quantity, borderColor: '#136aa8', backgroundColor: 'transparent', yAxisID: 'y1', borderWidth: 2, tension: .3, pointRadius: labels.length > 45 ? 0 : 3 }
+            ]},
+            options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { position: 'bottom', align: 'start' } }, scales: {
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, position: 'left', ticks: { callback: function(v) { return new Intl.NumberFormat('uz-UZ', { notation: 'compact' }).format(v); } } },
+                y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, ticks: { precision: 0 } }
+            }}
+        });
+    });
+</script>
+{% endblock %}

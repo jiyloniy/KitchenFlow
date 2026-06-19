@@ -141,6 +141,7 @@ class PaymentFlowTests(APITestCase):
         snapshot.refresh_from_db()
 
         self.assertEqual(snapshot.product_name, 'Osh')
+        self.assertEqual(snapshot.category_name, 'Taomlar')
         self.assertEqual(snapshot.unit_price, Decimal('25000'))
         self.assertEqual(snapshot.quantity, 2)
         self.assertEqual(snapshot.total_price, Decimal('50000'))

@@ -94,6 +94,34 @@
     </section>
 </div>
 
+<section class="report-section daily-sales-section">
+    <div class="section-head compact-head">
+        <div>
+            <p class="eyebrow">Kunlik tafsilot</p>
+            <h2>Qaysi kuni qaysi mahsulot sotildi</h2>
+        </div>
+        <span class="soft-pill">{{ daily_product_rows|length }} ta qator</span>
+    </div>
+    <div class="table-wrap modern-table">
+        <table>
+            <thead><tr><th>Sana</th><th>Mahsulot</th><th>Sotilgan soni</th><th>Paymentlar</th><th>Savdo summasi</th></tr></thead>
+            <tbody>
+                {% for row in daily_product_rows %}
+                    <tr>
+                        <td><strong>{{ row.day|date:'d.m.Y' }}</strong></td>
+                        <td>{{ row.product_name }}</td>
+                        <td>{{ row.quantity }} ta</td>
+                        <td>{{ row.payment_count }} ta</td>
+                        <td><strong>{{ row.revenue }} so‘m</strong></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="5" class="empty-cell">Tanlangan davrda kunlik savdo yo‘q.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
 <section class="report-section product-sales-section">
     <div class="section-head compact-head">
         <div>

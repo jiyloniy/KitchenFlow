@@ -13,6 +13,7 @@ class PaymentItemSerializer(serializers.ModelSerializer):
             'id',
             'product',
             'product_name',
+            'category_name',
             'quantity',
             'unit_price',
             'total_price',

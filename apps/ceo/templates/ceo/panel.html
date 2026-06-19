@@ -44,6 +44,10 @@
                 <i data-lucide="chart-no-axes-combined"></i>
                 <span>Kassa Hisobot</span>
             </a>
+            <a class="nav-link {% if active_page == 'product_report' %}active{% endif %}" href="{% url 'product-report' %}">
+                <i data-lucide="chart-bar-stacked"></i>
+                <span>Mahsulot Hisobot</span>
+            </a>
         </nav>
 
         <form method="post" action="{% url 'panel-logout' %}" class="logout-form">

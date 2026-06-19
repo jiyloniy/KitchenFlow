@@ -8,8 +8,9 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from apps.ceo.decorators import ceo_required
+from apps.orders.models import Order
 from apps.payments.models import Payment, PaymentItem
-from apps.products.models import Product
+from apps.products.models import Category, Product
 
 
 def resolve_date_range(request):
@@ -101,6 +102,16 @@ def cash_report_view(request):
         )
         .order_by('-revenue', 'product_name')
     )
+    daily_product_rows = list(
+        report_items.annotate(day=TruncDate('payment__paid_at'))
+        .values('day', 'product_id', 'product_name')
+        .annotate(
+            quantity=Sum('quantity'),
+            revenue=Sum('total_price'),
+            payment_count=Count('payment_id', distinct=True),
+        )
+        .order_by('-day', '-revenue', 'product_name')
+    )
 
     if selected_product:
         trend_rows = list(
@@ -137,9 +148,126 @@ def cash_report_view(request):
         'average_payment': average_payment,
         'method_rows': method_rows,
         'product_rows': product_rows,
+        'daily_product_rows': daily_product_rows,
         'recent_payments': payments.order_by('-paid_at')[:10],
         'trend_labels': [day.strftime('%d.%m') for day in days],
         'trend_values': [float(trend_map.get(day, 0)) for day in days],
         'trend_title': trend_title,
     }
     return render(request, 'ceo/reports/cash.html', context)
+
+
+@ceo_required
+def product_report_view(request):
+    period, start, end = resolve_date_range(request)
+    product_id = request.GET.get('product', '').strip()
+    category_name = request.GET.get('category', '').strip()
+
+    report_items = apply_item_dates(
+        PaymentItem.objects.select_related('payment__order', 'product'),
+        start,
+        end,
+    )
+    selected_product = None
+    if product_id.isdigit():
+        selected_product = Product.objects.filter(pk=product_id).first()
+        if selected_product:
+            report_items = report_items.filter(product_id=selected_product.pk)
+
+    selected_category = None
+    if category_name:
+        selected_category = Category.objects.filter(name=category_name).first()
+        if selected_category:
+            report_items = report_items.filter(category_name=selected_category.name)
+
+    totals = report_items.aggregate(
+        revenue=Sum('total_price'),
+        quantity=Sum('quantity'),
+        payment_count=Count('payment_id', distinct=True),
+        product_count=Count('product_name', distinct=True),
+    )
+    revenue_total = totals['revenue'] or Decimal('0')
+    quantity_total = totals['quantity'] or 0
+    average_unit_price = revenue_total / quantity_total if quantity_total else Decimal('0')
+
+    product_rows = list(
+        report_items.values('product_id', 'product_name', 'category_name')
+        .annotate(
+            quantity=Sum('quantity'),
+            revenue=Sum('total_price'),
+            payment_count=Count('payment_id', distinct=True),
+        )
+        .order_by('-revenue', 'product_name')
+    )
+    for row in product_rows:
+        row['average_price'] = row['revenue'] / row['quantity'] if row['quantity'] else Decimal('0')
+
+    category_rows = list(
+        report_items.values('category_name')
+        .annotate(
+            quantity=Sum('quantity'),
+            revenue=Sum('total_price'),
+            product_count=Count('product_name', distinct=True),
+        )
+        .order_by('-revenue', 'category_name')
+    )
+    for row in category_rows:
+        row['share'] = round(row['revenue'] / revenue_total * 100, 1) if revenue_total else 0
+
+    method_labels = dict(Payment.Method.choices)
+    method_rows = list(
+        report_items.values('payment__method')
+        .annotate(quantity=Sum('quantity'), revenue=Sum('total_price'))
+        .order_by('-revenue')
+    )
+    for row in method_rows:
+        row['label'] = method_labels.get(row['payment__method'], row['payment__method'])
+        row['share'] = round(row['revenue'] / revenue_total * 100, 1) if revenue_total else 0
+
+    order_type_labels = dict(Order.Type.choices)
+    order_type_rows = list(
+        report_items.values('payment__order__order_type')
+        .annotate(quantity=Sum('quantity'), revenue=Sum('total_price'))
+        .order_by('-revenue')
+    )
+    for row in order_type_rows:
+        value = row['payment__order__order_type']
+        row['label'] = order_type_labels.get(value, value)
+        row['share'] = round(row['revenue'] / revenue_total * 100, 1) if revenue_total else 0
+
+    trend_rows = list(
+        report_items.annotate(day=TruncDate('payment__paid_at'))
+        .values('day')
+        .annotate(total=Sum('total_price'), quantity=Sum('quantity'))
+        .order_by('day')
+    )
+    trend_map = {row['day']: row for row in trend_rows}
+    if start and end and (end - start).days <= 366:
+        days = [start + timedelta(days=offset) for offset in range((end - start).days + 1)]
+    else:
+        days = list(trend_map.keys())
+
+    context = {
+        'active_page': 'product_report',
+        'period': period,
+        'date_from': start,
+        'date_to': end,
+        'products': Product.objects.filter(is_active=True).order_by('name'),
+        'categories': Category.objects.filter(is_active=True).order_by('name'),
+        'selected_product': selected_product,
+        'selected_category': selected_category,
+        'revenue_total': revenue_total,
+        'quantity_total': quantity_total,
+        'payment_count': totals['payment_count'] or 0,
+        'product_count': totals['product_count'] or 0,
+        'average_unit_price': average_unit_price,
+        'product_rows': product_rows,
+        'category_rows': category_rows,
+        'method_rows': method_rows,
+        'order_type_rows': order_type_rows,
+        'top_product': product_rows[0] if product_rows else None,
+        'trend_labels': [day.strftime('%d.%m') for day in days],
+        'trend_revenue': [float(trend_map.get(day, {}).get('total', 0)) for day in days],
+        'trend_quantity': [trend_map.get(day, {}).get('quantity', 0) for day in days],
+    }
+    return render(request, 'ceo/reports/products.html', context)

@@ -50,11 +50,12 @@ class Payment(models.Model):
                 payment=self,
                 product=item.product,
                 product_name=item.product.name,
+                category_name=item.product.category.name,
                 quantity=item.quantity,
                 unit_price=item.unit_price,
                 total_price=item.total_price,
             )
-            for item in self.order.items.select_related('product')
+            for item in self.order.items.select_related('product__category')
         ])
 
 
@@ -68,6 +69,7 @@ class PaymentItem(models.Model):
         blank=True,
     )
     product_name = models.CharField(max_length=140)
+    category_name = models.CharField(max_length=120, blank=True)
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=12, decimal_places=2)
     total_price = models.DecimalField(max_digits=14, decimal_places=2)

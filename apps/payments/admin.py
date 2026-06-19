@@ -7,7 +7,14 @@ class PaymentItemInline(admin.TabularInline):
     model = PaymentItem
     extra = 0
     can_delete = False
-    readonly_fields = ('product', 'product_name', 'quantity', 'unit_price', 'total_price')
+    readonly_fields = (
+        'product',
+        'product_name',
+        'category_name',
+        'quantity',
+        'unit_price',
+        'total_price',
+    )
 
 
 @admin.register(Payment)

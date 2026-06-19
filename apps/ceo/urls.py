@@ -23,6 +23,7 @@ from apps.ceo.views import (
     product_delete_view,
     product_image_delete_view,
     product_list_view,
+    product_report_view,
     product_toggle_view,
     product_update_view,
     table_category_create_view,
@@ -69,4 +70,5 @@ urlpatterns = [
     path('dashboard/orders/<int:pk>/edit/', order_update_view, name='order-update'),
     path('dashboard/orders/<int:pk>/delete/', order_delete_view, name='order-delete'),
     path('dashboard/reports/cash/', cash_report_view, name='cash-report'),
+    path('dashboard/reports/products/', product_report_view, name='product-report'),
 ]

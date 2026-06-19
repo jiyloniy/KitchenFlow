@@ -118,5 +118,23 @@ class CeoOrderPaymentTests(TestCase):
         self.assertEqual(response.context['received_total'], Decimal('23000'))
         self.assertEqual(response.context['item_sales_total'], Decimal('24000'))
         self.assertEqual(response.context['product_rows'][0]['quantity'], 2)
+        self.assertEqual(response.context['daily_product_rows'][0]['quantity'], 2)
         self.assertContains(response, 'Kassa Hisobot')
         self.assertContains(response, 'cash-trend-chart')
+
+    def test_product_report_builds_product_category_and_order_breakdowns(self):
+        self.order.complete_payment(Payment.Method.CLICK, Decimal('23000'), self.user)
+
+        response = self.client.get(reverse('product-report'), {
+            'period': 'all',
+            'category': 'Taomlar',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['revenue_total'], Decimal('24000'))
+        self.assertEqual(response.context['quantity_total'], 2)
+        self.assertEqual(response.context['category_rows'][0]['category_name'], 'Taomlar')
+        self.assertEqual(response.context['method_rows'][0]['label'], 'Click')
+        self.assertEqual(response.context['order_type_rows'][0]['label'], 'Oshxonani o‘zida')
+        self.assertContains(response, 'product-trend-chart')
+        self.assertContains(response, 'Mahsulotlar bo‘yicha to‘liq statistika')
