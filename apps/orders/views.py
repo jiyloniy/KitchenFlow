@@ -47,7 +47,7 @@ class OrderViewSet(ModelViewSet):
     permission_classes = (IsCeoOrReadOnly,)
 
     def get_permissions(self):
-        if self.action in ('close', 'pay'):
+        if self.action == 'close':
             return (IsCeoOrCashier(),)
         return super().get_permissions()
 
@@ -82,17 +82,6 @@ class OrderViewSet(ModelViewSet):
     )
     @action(detail=True, methods=('post',), url_path='close')
     def close(self, request, pk=None):
-        return self._complete_payment(request)
-
-    @swagger_auto_schema(
-        method='post',
-        operation_summary='Payment qilish (close endpoint aliasi)',
-        request_body=CompletePaymentSerializer,
-        responses={200: OrderSerializer},
-        tags=('Orders',),
-    )
-    @action(detail=True, methods=('post',), url_path='pay')
-    def pay(self, request, pk=None):
         return self._complete_payment(request)
 
 # Create your views here.
