@@ -27,7 +27,14 @@
             </div>
             {% for item in order.items.all %}
                 <div class="receipt-row">
-                    <strong>{{ item.product.name }}</strong>
+                    <div class="receipt-product">
+                        {% if item.product.display_image %}
+                            <img src="{{ item.product.display_image.url }}" alt="{{ item.product.name }}">
+                        {% else %}
+                            <span class="order-item-placeholder">Rasm</span>
+                        {% endif %}
+                        <strong>{{ item.product.name }}</strong>
+                    </div>
                     <span>{{ item.unit_price }} so‘m</span>
                     <span>{{ item.quantity }}</span>
                     <strong>{{ item.total_price }} so‘m</strong>

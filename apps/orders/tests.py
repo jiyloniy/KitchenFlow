@@ -95,6 +95,18 @@ class PaymentFlowTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_order_detail_returns_absolute_product_image_url(self):
+        self.product.banner_image = 'products/banners/order-test.jpg'
+        self.product.save(update_fields=('banner_image', 'updated_at'))
+
+        response = self.client.get(reverse('api-order-detail', args=(self.order.pk,)))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data['items'][0]['product_image_url'],
+            'http://testserver/media/products/banners/order-test.jpg',
+        )
+
     def test_payment_amount_updates_when_order_items_change(self):
         self.order.complete_payment(Payment.Method.CASH, Decimal('50000'), self.user)
         item = self.order.items.get()

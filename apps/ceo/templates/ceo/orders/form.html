@@ -69,6 +69,15 @@
                         {% for item_form in formset %}
                             <div class="order-item-row">
                                 {% for hidden in item_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                <div class="order-item-media">
+                                    {% if item_form.instance.product_id and item_form.instance.product.display_image %}
+                                        <img class="order-item-thumb" src="{{ item_form.instance.product.display_image.url }}" alt="{{ item_form.instance.product.name }}">
+                                        <span class="order-item-placeholder" hidden>Rasm</span>
+                                    {% else %}
+                                        <img class="order-item-thumb" src="" alt="" hidden>
+                                        <span class="order-item-placeholder">Rasm</span>
+                                    {% endif %}
+                                </div>
                                 <div class="field">
                                     <label>Mahsulot</label>
                                     {{ item_form.product }}
@@ -127,6 +136,10 @@
     <template id="empty-order-item-template">
         <div class="order-item-row">
             {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="order-item-media">
+                <img class="order-item-thumb" src="" alt="" hidden>
+                <span class="order-item-placeholder">Rasm</span>
+            </div>
             <div class="field">
                 <label>Mahsulot</label>
                 {{ formset.empty_form.product }}
@@ -146,6 +159,7 @@
 </section>
 
 {{ product_prices|json_script:'product-prices' }}
+{{ product_images|json_script:'product-images' }}
 <script>
     (function () {
         const addButton = document.getElementById('add-order-item');
@@ -157,6 +171,8 @@
         const liveTotal = document.getElementById('live-order-total');
         const pricesNode = document.getElementById('product-prices');
         const prices = pricesNode ? JSON.parse(pricesNode.textContent) : {};
+        const imagesNode = document.getElementById('product-images');
+        const productImages = imagesNode ? JSON.parse(imagesNode.textContent) : {};
         const paymentAmount = document.getElementById('id_payment_amount');
         let paymentAmountTouched = Boolean(paymentAmount?.value);
 
@@ -175,8 +191,17 @@
                 total += lineTotal;
                 const unitNode = row.querySelector('.item-unit-price');
                 const lineNode = row.querySelector('.item-line-total');
+                const imageNode = row.querySelector('.order-item-thumb');
+                const placeholderNode = row.querySelector('.order-item-placeholder');
+                const imageUrl = productImages[product?.value] || '';
                 if (unitNode) unitNode.textContent = formatMoney(unitPrice);
                 if (lineNode) lineNode.textContent = formatMoney(lineTotal);
+                if (imageNode) {
+                    imageNode.src = imageUrl;
+                    imageNode.alt = product?.selectedOptions[0]?.text || '';
+                    imageNode.hidden = !imageUrl;
+                }
+                if (placeholderNode) placeholderNode.hidden = Boolean(imageUrl);
             });
             if (liveTotal) liveTotal.textContent = formatMoney(total);
             if (paymentAmount && !paymentAmountTouched) paymentAmount.value = total.toFixed(2);

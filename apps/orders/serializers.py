@@ -10,12 +10,28 @@ from apps.payments.serializers import PaymentSerializer
 
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source='product.name', read_only=True)
+    product_image_url = serializers.SerializerMethodField()
     total_price = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
 
     class Meta:
         model = OrderItem
-        fields = ('id', 'product', 'product_name', 'quantity', 'unit_price', 'total_price')
+        fields = (
+            'id',
+            'product',
+            'product_name',
+            'product_image_url',
+            'quantity',
+            'unit_price',
+            'total_price',
+        )
         read_only_fields = ('unit_price',)
+
+    def get_product_image_url(self, item):
+        image = item.product.display_image
+        if not image:
+            return None
+        request = self.context.get('request')
+        return request.build_absolute_uri(image.url) if request else image.url
 
 
 class OrderSerializer(serializers.ModelSerializer):

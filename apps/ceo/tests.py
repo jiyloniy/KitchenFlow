@@ -93,3 +93,15 @@ class CeoOrderPaymentTests(TestCase):
         payment = Payment.objects.get(order=self.order)
         self.assertEqual(payment.method, Payment.Method.CLICK)
         self.assertEqual(payment.amount, Decimal('21000'))
+
+    def test_order_detail_and_update_show_product_image(self):
+        self.product.banner_image = 'products/banners/ceo-order-test.jpg'
+        self.product.save(update_fields=('banner_image', 'updated_at'))
+
+        detail_response = self.client.get(reverse('order-detail', args=(self.order.pk,)))
+        update_response = self.client.get(reverse('order-update', args=(self.order.pk,)))
+
+        image_url = '/media/products/banners/ceo-order-test.jpg'
+        self.assertContains(detail_response, image_url)
+        self.assertContains(update_response, image_url)
+        self.assertContains(update_response, 'product-images')

@@ -22,7 +22,6 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
-
 class Product(models.Model):
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     name = models.CharField(max_length=140)
@@ -44,6 +43,14 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_image(self):
+        if self.banner_image:
+            return self.banner_image
+
+        images = list(self.images.all())
+        return images[0].image if images else None
 
 
 class ProductImage(models.Model):

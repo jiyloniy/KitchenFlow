@@ -772,13 +772,55 @@ textarea.form-control {
 
 .order-item-row {
     display: grid;
-    grid-template-columns: minmax(220px, 1fr) 110px minmax(150px, auto) auto;
+    grid-template-columns: 64px minmax(200px, 1fr) minmax(140px, auto) 110px auto;
     gap: 12px;
     align-items: end;
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fbfbfa;
+}
+
+.order-item-media,
+.order-item-thumb,
+.order-item-placeholder {
+    width: 64px;
+    height: 64px;
+}
+
+.order-item-thumb {
+    display: block;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid var(--line);
+    background: #eef3f8;
+}
+
+.order-item-placeholder {
+    place-items: center;
+    border-radius: 8px;
+    background: #eef3f8;
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.order-item-placeholder:not([hidden]) {
+    display: grid;
+}
+
+.receipt-product {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.receipt-product img,
+.receipt-product .order-item-placeholder {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
 }
 
 .item-price-summary {

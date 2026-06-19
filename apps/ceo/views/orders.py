@@ -17,6 +17,14 @@ def get_product_prices():
     }
 
 
+def get_product_images():
+    products = Product.objects.filter(is_active=True).prefetch_related('images')
+    return {
+        str(product.pk): product.display_image.url if product.display_image else ''
+        for product in products
+    }
+
+
 def save_order_items(order, formset, replace=False):
     if replace:
         order.items.all().delete()
@@ -44,7 +52,9 @@ def order_list_view(request):
     query = request.GET.get('q', '').strip()
     status = request.GET.get('status', 'all')
     order_type = request.GET.get('type', 'all')
-    orders = Order.objects.select_related('table', 'payment').prefetch_related('items__product').order_by('-created_at')
+    orders = Order.objects.select_related('table', 'payment').prefetch_related(
+        'items__product__images'
+    ).order_by('-created_at')
 
     if query:
         orders = orders.filter(customer_name__icontains=query)
@@ -72,7 +82,9 @@ def order_list_view(request):
 @ceo_required
 def order_detail_view(request, pk):
     order = get_object_or_404(
-        Order.objects.select_related('table', 'payment__received_by').prefetch_related('items__product'),
+        Order.objects.select_related('table', 'payment__received_by').prefetch_related(
+            'items__product__images'
+        ),
         pk=pk,
     )
     return render(request, 'ceo/orders/detail.html', {
@@ -85,7 +97,9 @@ def order_detail_view(request, pk):
 @require_http_methods(['GET', 'POST'])
 def order_payment_view(request, pk):
     order = get_object_or_404(
-        Order.objects.select_related('table', 'payment__received_by').prefetch_related('items__product'),
+        Order.objects.select_related('table', 'payment__received_by').prefetch_related(
+            'items__product__images'
+        ),
         pk=pk,
     )
     form = PaymentForm(request.POST or None, order=order)
@@ -139,6 +153,7 @@ def order_create_view(request):
         'title': 'Yangi zakaz',
         'button_text': 'Saqlash',
         'product_prices': get_product_prices(),
+        'product_images': get_product_images(),
     })
 
 
@@ -172,6 +187,7 @@ def order_update_view(request, pk):
         'title': 'Zakazni tahrirlash',
         'button_text': 'Yangilash',
         'product_prices': get_product_prices(),
+        'product_images': get_product_images(),
     })
 
 
