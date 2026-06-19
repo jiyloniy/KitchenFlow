@@ -11,6 +11,7 @@ from apps.ceo.decorators import ceo_required
 from apps.orders.models import Order
 from apps.payments.models import Payment, PaymentItem
 from apps.products.models import Category, Product
+from apps.users.models import User
 
 
 def resolve_date_range(request):
@@ -58,18 +59,46 @@ def apply_item_dates(queryset, start, end):
 def cash_report_view(request):
     period, start, end = resolve_date_range(request)
     product_id = request.GET.get('product', '').strip()
+    category_name = request.GET.get('category', '').strip()
+    payment_method = request.GET.get('method', '').strip()
+    order_type = request.GET.get('order_type', '').strip()
+    receiver_id = request.GET.get('received_by', '').strip()
 
     payments = apply_payment_dates(
         Payment.objects.select_related('order', 'received_by').prefetch_related('items'),
         start,
         end,
     )
-    report_items = apply_item_dates(PaymentItem.objects.select_related('payment'), start, end)
+    if payment_method in Payment.Method.values:
+        payments = payments.filter(method=payment_method)
+    else:
+        payment_method = ''
+    if order_type in Order.Type.values:
+        payments = payments.filter(order__order_type=order_type)
+    else:
+        order_type = ''
+
+    selected_receiver = None
+    if receiver_id.isdigit():
+        selected_receiver = User.objects.filter(pk=receiver_id).first()
+        if selected_receiver:
+            payments = payments.filter(received_by=selected_receiver)
+
+    report_items = PaymentItem.objects.select_related('payment').filter(payment__in=payments)
     selected_product = None
     if product_id.isdigit():
         selected_product = Product.objects.filter(pk=product_id).first()
         if selected_product:
             report_items = report_items.filter(product_id=selected_product.pk)
+
+    selected_category = None
+    if category_name:
+        selected_category = Category.objects.filter(name=category_name).first()
+        if selected_category:
+            report_items = report_items.filter(category_name=selected_category.name)
+
+    if selected_product or selected_category:
+        payments = payments.filter(pk__in=report_items.values('payment_id')).distinct()
 
     payment_summary = payments.aggregate(total=Sum('amount'), count=Count('id'))
     received_total = payment_summary['total'] or Decimal('0')
@@ -113,14 +142,15 @@ def cash_report_view(request):
         .order_by('-day', '-revenue', 'product_name')
     )
 
-    if selected_product:
+    if selected_product or selected_category:
         trend_rows = list(
             report_items.annotate(day=TruncDate('payment__paid_at'))
             .values('day')
             .annotate(total=Sum('total_price'))
             .order_by('day')
         )
-        trend_title = f'{selected_product.name} sotuv trendi'
+        selected_label = selected_product.name if selected_product else selected_category.name
+        trend_title = f'{selected_label} sotuv trendi'
     else:
         trend_rows = list(
             payments.annotate(day=TruncDate('paid_at'))
@@ -135,13 +165,25 @@ def cash_report_view(request):
     else:
         days = list(trend_map.keys())
 
+    persisted_filters = request.GET.copy()
+    for key in ('period', 'date_from', 'date_to'):
+        persisted_filters.pop(key, None)
+
     context = {
         'active_page': 'cash_report',
         'period': period,
         'date_from': start,
         'date_to': end,
         'products': Product.objects.filter(is_active=True).order_by('name'),
+        'categories': Category.objects.filter(is_active=True).order_by('name'),
+        'receivers': User.objects.filter(received_payments__isnull=False).distinct().order_by('name'),
+        'payment_methods': Payment.Method.choices,
+        'order_types': Order.Type.choices,
         'selected_product': selected_product,
+        'selected_category': selected_category,
+        'selected_receiver': selected_receiver,
+        'selected_method': payment_method,
+        'selected_order_type': order_type,
         'received_total': received_total,
         'item_sales_total': item_sales_total,
         'payment_count': payment_count,
@@ -153,6 +195,14 @@ def cash_report_view(request):
         'trend_labels': [day.strftime('%d.%m') for day in days],
         'trend_values': [float(trend_map.get(day, 0)) for day in days],
         'trend_title': trend_title,
+        'active_filters_count': sum(bool(value) for value in (
+            selected_product,
+            selected_category,
+            selected_receiver,
+            payment_method,
+            order_type,
+        )),
+        'persisted_filters': persisted_filters.urlencode(),
     }
     return render(request, 'ceo/reports/cash.html', context)
 

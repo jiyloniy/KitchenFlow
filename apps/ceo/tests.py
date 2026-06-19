@@ -138,3 +138,27 @@ class CeoOrderPaymentTests(TestCase):
         self.assertEqual(response.context['order_type_rows'][0]['label'], 'Oshxonani o‘zida')
         self.assertContains(response, 'product-trend-chart')
         self.assertContains(response, 'Mahsulotlar bo‘yicha to‘liq statistika')
+
+    def test_cash_report_combines_operational_filters(self):
+        self.order.complete_payment(Payment.Method.CASH, Decimal('23000'), self.user)
+        filters = {
+            'period': 'all',
+            'category': 'Taomlar',
+            'product': self.product.pk,
+            'method': Payment.Method.CASH,
+            'order_type': Order.Type.DINE_IN,
+            'received_by': self.user.pk,
+        }
+
+        response = self.client.get(reverse('cash-report'), filters)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['received_total'], Decimal('23000'))
+        self.assertEqual(response.context['item_sales_total'], Decimal('24000'))
+        self.assertEqual(response.context['active_filters_count'], 5)
+        self.assertContains(response, 'method=cash')
+
+        filters['method'] = Payment.Method.CARD
+        empty_response = self.client.get(reverse('cash-report'), filters)
+        self.assertEqual(empty_response.context['received_total'], Decimal('0'))
+        self.assertEqual(empty_response.context['payment_count'], 0)

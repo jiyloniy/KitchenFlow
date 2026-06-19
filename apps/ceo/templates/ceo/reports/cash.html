@@ -8,14 +8,21 @@
 {% endblock %}
 
 {% block content %}
-<section class="report-filter-band">
-    <div class="period-tabs" aria-label="Hisobot davri">
-        <a class="{% if period == 'today' %}active{% endif %}" href="?period=today{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Bugun</a>
-        <a class="{% if period == '7d' %}active{% endif %}" href="?period=7d{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">7 kun</a>
-        <a class="{% if period == '30d' %}active{% endif %}" href="?period=30d{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">30 kun</a>
-        <a class="{% if period == 'all' %}active{% endif %}" href="?period=all{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Barchasi</a>
+<section class="report-filter-band cash-filter-band">
+    <div class="report-filter-topline">
+        <div class="period-tabs" aria-label="Hisobot davri">
+            <a class="{% if period == 'today' %}active{% endif %}" href="?period=today{% if persisted_filters %}&{{ persisted_filters }}{% endif %}">Bugun</a>
+            <a class="{% if period == '7d' %}active{% endif %}" href="?period=7d{% if persisted_filters %}&{{ persisted_filters }}{% endif %}">7 kun</a>
+            <a class="{% if period == '30d' %}active{% endif %}" href="?period=30d{% if persisted_filters %}&{{ persisted_filters }}{% endif %}">30 kun</a>
+            <a class="{% if period == 'all' %}active{% endif %}" href="?period=all{% if persisted_filters %}&{{ persisted_filters }}{% endif %}">Barchasi</a>
+        </div>
+        <div class="filter-status">
+            {% if active_filters_count %}<span class="soft-pill">{{ active_filters_count }} ta faol filtr</span>{% endif %}
+            <a class="clear-filter-link" href="{% url 'cash-report' %}"><i data-lucide="rotate-ccw"></i><span>Tozalash</span></a>
+        </div>
     </div>
-    <form method="get" class="report-filter-form">
+    <form method="get" class="report-filter-form cash-report-filter">
+        <input type="hidden" name="period" value="custom">
         <div class="field compact-field">
             <label for="report-date-from">Dan</label>
             <input id="report-date-from" type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
@@ -24,7 +31,16 @@
             <label for="report-date-to">Gacha</label>
             <input id="report-date-to" type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
         </div>
-        <div class="field compact-field product-report-filter">
+        <div class="field compact-field">
+            <label for="report-category">Kategoriya</label>
+            <select id="report-category" name="category">
+                <option value="">Barcha kategoriyalar</option>
+                {% for category in categories %}
+                    <option value="{{ category.name }}" {% if selected_category.pk == category.pk %}selected{% endif %}>{{ category.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field compact-field">
             <label for="report-product">Mahsulot</label>
             <select id="report-product" name="product">
                 <option value="">Barcha mahsulotlar</option>
@@ -33,10 +49,37 @@
                 {% endfor %}
             </select>
         </div>
+        <div class="field compact-field">
+            <label for="report-method">Payment turi</label>
+            <select id="report-method" name="method">
+                <option value="">Barcha paymentlar</option>
+                {% for value, label in payment_methods %}
+                    <option value="{{ value }}" {% if selected_method == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field compact-field">
+            <label for="report-order-type">Zakaz turi</label>
+            <select id="report-order-type" name="order_type">
+                <option value="">Barcha zakazlar</option>
+                {% for value, label in order_types %}
+                    <option value="{{ value }}" {% if selected_order_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field compact-field">
+            <label for="report-receiver">Qabul qilgan hodim</label>
+            <select id="report-receiver" name="received_by">
+                <option value="">Barcha hodimlar</option>
+                {% for receiver in receivers %}
+                    <option value="{{ receiver.pk }}" {% if selected_receiver.pk == receiver.pk %}selected{% endif %}>{{ receiver.name|default:receiver.username }}</option>
+                {% endfor %}
+            </select>
+        </div>
         <button class="primary-button" type="submit"><i data-lucide="filter"></i><span>Ko‘rsatish</span></button>
     </form>
-    {% if selected_product %}
-        <p class="report-filter-note">Mahsulot filtri savdo summasi va trendga qo‘llanadi. Kassa tushumi real paymentlar bo‘yicha qoladi.</p>
+    {% if selected_product or selected_category %}
+        <p class="report-filter-note">Mahsulot va kategoriya filtri item savdosiga qo‘llanadi; kassa tushumi esa mos kelgan cheklarning to‘liq payment summasini ko‘rsatadi.</p>
     {% endif %}
 </section>
 

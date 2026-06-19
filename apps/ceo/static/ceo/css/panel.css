@@ -1297,6 +1297,44 @@ textarea.form-control {
     font-size: 12px;
 }
 
+.cash-filter-band {
+    display: block;
+}
+
+.report-filter-topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.filter-status,
+.clear-filter-link {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.clear-filter-link {
+    min-height: 34px;
+    padding: 0 10px;
+    border-radius: 6px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.clear-filter-link:hover {
+    background: #eef1f4;
+    color: var(--ink);
+}
+
+.clear-filter-link svg {
+    width: 15px;
+    height: 15px;
+}
+
 .period-tabs {
     display: inline-flex;
     gap: 4px;
@@ -1327,6 +1365,15 @@ textarea.form-control {
     grid-template-columns: 140px 140px minmax(190px, 240px) auto;
     gap: 10px;
     align-items: end;
+}
+
+.cash-report-filter {
+    grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.cash-report-filter .primary-button {
+    width: fit-content;
+    gap: 8px;
 }
 
 .compact-field label {
@@ -2145,6 +2192,19 @@ th {
 
     .report-filter-form {
         grid-template-columns: 1fr;
+    }
+
+    .report-filter-topline {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .filter-status {
+        justify-content: space-between;
+    }
+
+    .cash-report-filter .primary-button {
+        width: 100%;
     }
 
     .trend-canvas-wrap {
