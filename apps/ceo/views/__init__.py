@@ -37,6 +37,7 @@ from .orders import (
     order_payment_view,
     order_update_view,
 )
+from .reports import cash_report_view
 
 __all__ = [
     'dashboard_view',
@@ -70,4 +71,5 @@ __all__ = [
     'order_list_view',
     'order_payment_view',
     'order_update_view',
+    'cash_report_view',
 ]

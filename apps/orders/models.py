@@ -49,6 +49,8 @@ class Order(models.Model):
         if payment and payment.amount == previous_total and payment.amount != self.total_amount:
             payment.amount = self.total_amount
             payment.save(update_fields=['amount', 'updated_at'])
+        if payment:
+            payment.sync_items_from_order()
 
     def complete_payment(self, method, amount, received_by=None):
         if not self.items.exists():
@@ -69,6 +71,7 @@ class Order(models.Model):
             },
         )
         self.payment = payment
+        payment.sync_items_from_order()
         if self.status != self.Status.CLOSED:
             self.status = self.Status.CLOSED
             self.save(update_fields=['status', 'updated_at'])

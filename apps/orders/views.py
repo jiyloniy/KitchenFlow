@@ -42,7 +42,7 @@ class OrderViewSet(ModelViewSet):
     queryset = Order.objects.select_related(
         'table',
         'payment__received_by',
-    ).prefetch_related('items__product__images').order_by('-created_at')
+    ).prefetch_related('items__product__images', 'payment__items').order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = (IsCeoOrReadOnly,)
 
@@ -74,7 +74,8 @@ class OrderViewSet(ModelViewSet):
         operation_summary='Zakazni yopish va payment yaratish yoki yangilash',
         operation_description=(
             'Kassir yoki CEO payment_type va amount yuboradi. Mavjud payment bo‘lsa yangilanadi; '
-            'order detail payment ma’lumoti bilan qaytadi.'
+            'order itemlari tarixiy PaymentItem snapshotlariga saqlanadi va order detail payment '
+            'ma’lumoti bilan qaytadi.'
         ),
         request_body=CompletePaymentSerializer,
         responses={200: OrderSerializer},

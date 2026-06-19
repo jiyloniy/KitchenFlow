@@ -3,10 +3,25 @@ from decimal import Decimal
 from rest_framework import serializers
 
 from apps.orders.models import Order
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentItem
+
+
+class PaymentItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentItem
+        fields = (
+            'id',
+            'product',
+            'product_name',
+            'quantity',
+            'unit_price',
+            'total_price',
+        )
+        read_only_fields = fields
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    items = PaymentItemSerializer(many=True, read_only=True)
     order_code = serializers.CharField(source='order.display_code', read_only=True)
     method_display = serializers.CharField(source='get_method_display', read_only=True)
     received_by_name = serializers.CharField(source='received_by.name', read_only=True)
@@ -26,6 +41,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'amount',
             'order_amount',
             'difference_amount',
+            'items',
             'received_by',
             'received_by_name',
             'paid_at',

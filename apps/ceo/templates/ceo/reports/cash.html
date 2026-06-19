@@ -1,0 +1,165 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}Kassa Hisobot | KitchenFlow{% endblock %}
+{% block page_title %}Kassa Hisobot{% endblock %}
+
+{% block head_extra %}
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<section class="report-filter-band">
+    <div class="period-tabs" aria-label="Hisobot davri">
+        <a class="{% if period == 'today' %}active{% endif %}" href="?period=today{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Bugun</a>
+        <a class="{% if period == '7d' %}active{% endif %}" href="?period=7d{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">7 kun</a>
+        <a class="{% if period == '30d' %}active{% endif %}" href="?period=30d{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">30 kun</a>
+        <a class="{% if period == 'all' %}active{% endif %}" href="?period=all{% if selected_product %}&product={{ selected_product.pk }}{% endif %}">Barchasi</a>
+    </div>
+    <form method="get" class="report-filter-form">
+        <div class="field compact-field">
+            <label for="report-date-from">Dan</label>
+            <input id="report-date-from" type="date" name="date_from" value="{{ date_from|date:'Y-m-d' }}">
+        </div>
+        <div class="field compact-field">
+            <label for="report-date-to">Gacha</label>
+            <input id="report-date-to" type="date" name="date_to" value="{{ date_to|date:'Y-m-d' }}">
+        </div>
+        <div class="field compact-field product-report-filter">
+            <label for="report-product">Mahsulot</label>
+            <select id="report-product" name="product">
+                <option value="">Barcha mahsulotlar</option>
+                {% for product in products %}
+                    <option value="{{ product.pk }}" {% if selected_product.pk == product.pk %}selected{% endif %}>{{ product.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button class="primary-button" type="submit"><i data-lucide="filter"></i><span>Ko‘rsatish</span></button>
+    </form>
+    {% if selected_product %}
+        <p class="report-filter-note">Mahsulot filtri savdo summasi va trendga qo‘llanadi. Kassa tushumi real paymentlar bo‘yicha qoladi.</p>
+    {% endif %}
+</section>
+
+<section class="report-summary" aria-label="Kassa ko‘rsatkichlari">
+    <div><span>Qabul qilingan</span><strong>{{ received_total }} so‘m</strong><small>Payment summasi</small></div>
+    <div><span>Mahsulotlar savdosi</span><strong>{{ item_sales_total }} so‘m</strong><small>Snapshot itemlar bo‘yicha</small></div>
+    <div><span>Tranzaksiyalar</span><strong>{{ payment_count }}</strong><small>Yopilgan zakazlar</small></div>
+    <div><span>O‘rtacha chek</span><strong>{{ average_payment|floatformat:2 }} so‘m</strong><small>Har bir payment uchun</small></div>
+</section>
+
+<section class="report-section trend-section">
+    <div class="section-head compact-head">
+        <div>
+            <p class="eyebrow">Dinamik ko‘rsatkich</p>
+            <h2>{{ trend_title }}</h2>
+        </div>
+        <span class="report-range">{% if date_from %}{{ date_from|date:'d.m.Y' }}{% else %}Birinchi paymentdan{% endif %} — {{ date_to|date:'d.m.Y' }}</span>
+    </div>
+    <div class="trend-canvas-wrap">
+        <canvas id="cash-trend-chart"></canvas>
+    </div>
+</section>
+
+<div class="report-split">
+    <section class="report-section">
+        <div class="section-head compact-head">
+            <div><p class="eyebrow">To‘lov kanallari</p><h2>Payment turlari</h2></div>
+        </div>
+        <div class="method-breakdown">
+            {% for row in method_rows %}
+                <div class="method-row">
+                    <div class="method-row-head"><strong>{{ row.label }}</strong><span>{{ row.amount }} so‘m · {{ row.count }} ta</span></div>
+                    <div class="method-track"><span class="method-fill method-{{ row.method }}" style="width: {{ row.share }}%"></span></div>
+                    <small>{{ row.share }}%</small>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="report-section">
+        <div class="section-head compact-head">
+            <div><p class="eyebrow">Oxirgi operatsiyalar</p><h2>Paymentlar</h2></div>
+        </div>
+        <div class="recent-payment-list">
+            {% for payment in recent_payments %}
+                <a href="{% url 'order-detail' payment.order_id %}">
+                    <span class="payment-list-icon method-{{ payment.method }}"><i data-lucide="{% if payment.method == 'cash' %}banknote{% elif payment.method == 'card' %}credit-card{% else %}mouse-pointer-click{% endif %}"></i></span>
+                    <span><strong>{{ payment.order.display_code }}</strong><small>{{ payment.paid_at|date:'d.m.Y H:i' }} · {{ payment.get_method_display }}</small></span>
+                    <strong>{{ payment.amount }} so‘m</strong>
+                </a>
+            {% empty %}
+                <div class="empty-panel">Bu davrda payment yo‘q.</div>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<section class="report-section product-sales-section">
+    <div class="section-head compact-head">
+        <div>
+            <p class="eyebrow">Mahsulot kesimi</p>
+            <h2>{% if selected_product %}{{ selected_product.name }} hisoboti{% else %}Mahsulotlar savdosi{% endif %}</h2>
+        </div>
+    </div>
+    <div class="table-wrap modern-table">
+        <table>
+            <thead><tr><th>Mahsulot</th><th>Sotilgan soni</th><th>Paymentlar</th><th>Savdo summasi</th></tr></thead>
+            <tbody>
+                {% for row in product_rows %}
+                    <tr>
+                        <td><strong>{{ row.product_name }}</strong></td>
+                        <td>{{ row.quantity }} ta</td>
+                        <td>{{ row.payment_count }} ta</td>
+                        <td><strong>{{ row.revenue }} so‘m</strong></td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4" class="empty-cell">Tanlangan davrda mahsulot savdosi yo‘q.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+
+{{ trend_labels|json_script:'cash-trend-labels' }}
+{{ trend_values|json_script:'cash-trend-values' }}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const canvas = document.getElementById('cash-trend-chart');
+        if (!canvas || !window.Chart) return;
+        const labels = JSON.parse(document.getElementById('cash-trend-labels').textContent);
+        const values = JSON.parse(document.getElementById('cash-trend-values').textContent);
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    borderColor: '#f28a00',
+                    backgroundColor: 'rgba(242, 138, 0, 0.08)',
+                    borderWidth: 2,
+                    pointRadius: labels.length > 45 ? 0 : 3,
+                    pointHoverRadius: 5,
+                    tension: 0.3,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { intersect: false, mode: 'index' },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { callbacks: { label: function (ctx) { return new Intl.NumberFormat('uz-UZ').format(ctx.raw) + ' so‘m'; } } }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { callback: function (value) { return new Intl.NumberFormat('uz-UZ', { notation: 'compact' }).format(value); } } }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

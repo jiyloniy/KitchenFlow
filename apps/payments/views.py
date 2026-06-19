@@ -53,7 +53,9 @@ class PaymentViewSet(ModelViewSet):
     Har bir order uchun faqat bitta payment mavjud bo‘ladi.
     """
 
-    queryset = Payment.objects.select_related('order', 'received_by').order_by('-paid_at')
+    queryset = Payment.objects.select_related('order', 'received_by').prefetch_related(
+        'items'
+    ).order_by('-paid_at')
     permission_classes = (IsCeoOrCashier,)
 
     def get_serializer_class(self):
@@ -73,7 +75,8 @@ class PaymentViewSet(ModelViewSet):
         operation_summary='Payment yaratish va zakazni yopish',
         operation_description=(
             'Order ID, payment turi va real qabul qilingan summa yuboriladi. '
-            'Payment yaratilgach order avtomatik yopiladi.'
+            'Payment yaratilgach order avtomatik yopiladi va order mahsulotlari PaymentItem '
+            'snapshotlariga nusxalanadi. Keyingi mahsulot narxi o‘zgarishi tarixiy itemlarga ta’sir qilmaydi.'
         ),
         request_body=PAYMENT_CREATE_SCHEMA,
         responses={201: PaymentSerializer},
@@ -87,6 +90,7 @@ class PaymentViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary='Paymentni to‘liq yangilash',
+        operation_description='Payment turi va summasi yangilanadi, item snapshotlari orderning joriy tarkibidan sinxronlanadi.',
         request_body=PAYMENT_UPDATE_SCHEMA,
         responses={200: PaymentSerializer},
         tags=('Payments',),
@@ -101,6 +105,7 @@ class PaymentViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary='Paymentni qisman yangilash',
+        operation_description='Yuborilgan payment maydonlari yangilanadi va item snapshotlari qayta sinxronlanadi.',
         request_body=PAYMENT_PATCH_SCHEMA,
         responses={200: PaymentSerializer},
         tags=('Payments',),

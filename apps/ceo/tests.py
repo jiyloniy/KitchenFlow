@@ -105,3 +105,18 @@ class CeoOrderPaymentTests(TestCase):
         self.assertContains(detail_response, image_url)
         self.assertContains(update_response, image_url)
         self.assertContains(update_response, 'product-images')
+
+    def test_cash_report_uses_payment_item_snapshots_and_product_filter(self):
+        self.order.complete_payment(Payment.Method.CASH, Decimal('23000'), self.user)
+
+        response = self.client.get(reverse('cash-report'), {
+            'period': 'all',
+            'product': self.product.pk,
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['received_total'], Decimal('23000'))
+        self.assertEqual(response.context['item_sales_total'], Decimal('24000'))
+        self.assertEqual(response.context['product_rows'][0]['quantity'], 2)
+        self.assertContains(response, 'Kassa Hisobot')
+        self.assertContains(response, 'cash-trend-chart')

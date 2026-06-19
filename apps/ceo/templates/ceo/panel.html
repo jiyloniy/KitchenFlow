@@ -13,31 +13,42 @@
 
         <nav class="nav">
             <a class="nav-link {% if active_page == 'dashboard' %}active{% endif %}" href="{% url 'ceo-dashboard' %}">
+                <i data-lucide="layout-dashboard"></i>
                 <span>Bosh sahifa</span>
             </a>
             <a class="nav-link {% if active_page == 'employees' %}active{% endif %}" href="{% url 'employee-list' %}">
+                <i data-lucide="users"></i>
                 <span>Hodimlar</span>
             </a>
             <a class="nav-link {% if active_page == 'categories' %}active{% endif %}" href="{% url 'category-list' %}">
+                <i data-lucide="tags"></i>
                 <span>Kategoriyalar</span>
             </a>
             <a class="nav-link {% if active_page == 'products' %}active{% endif %}" href="{% url 'product-list' %}">
+                <i data-lucide="utensils"></i>
                 <span>Mahsulotlar</span>
             </a>
             <a class="nav-link {% if active_page == 'tables' %}active{% endif %}" href="{% url 'table-list' %}">
+                <i data-lucide="armchair"></i>
                 <span>Stollar</span>
             </a>
             <a class="nav-link {% if active_page == 'table_categories' %}active{% endif %}" href="{% url 'table-category-list' %}">
+                <i data-lucide="layers-3"></i>
                 <span>Stol kategoriyalari</span>
             </a>
             <a class="nav-link {% if active_page == 'orders' %}active{% endif %}" href="{% url 'order-list' %}">
+                <i data-lucide="receipt-text"></i>
                 <span>Zakazlar</span>
+            </a>
+            <a class="nav-link {% if active_page == 'cash_report' %}active{% endif %}" href="{% url 'cash-report' %}">
+                <i data-lucide="chart-no-axes-combined"></i>
+                <span>Kassa Hisobot</span>
             </a>
         </nav>
 
         <form method="post" action="{% url 'panel-logout' %}" class="logout-form">
             {% csrf_token %}
-            <button type="submit" class="ghost-button">Chiqish</button>
+            <button type="submit" class="ghost-button"><i data-lucide="log-out"></i><span>Chiqish</span></button>
         </form>
     </aside>
 

@@ -5,6 +5,7 @@ from apps.ceo.views import (
     category_delete_view,
     category_list_view,
     category_update_view,
+    cash_report_view,
     dashboard_view,
     employee_create_view,
     employee_delete_view,
@@ -67,4 +68,5 @@ urlpatterns = [
     path('dashboard/orders/<int:pk>/payment/', order_payment_view, name='order-payment'),
     path('dashboard/orders/<int:pk>/edit/', order_update_view, name='order-update'),
     path('dashboard/orders/<int:pk>/delete/', order_delete_view, name='order-delete'),
+    path('dashboard/reports/cash/', cash_report_view, name='cash-report'),
 ]

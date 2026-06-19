@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.orders.models import Order, OrderItem
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentItem
 from apps.products.models import Category, Product
 from apps.tables.models import Table, TableCategory
 from apps.users.models import User
@@ -62,6 +62,9 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(self.order.payment.amount, Decimal('48000'))
         self.assertEqual(response.data['payment']['difference_amount'], '-2000.00')
         self.assertEqual(response.data['payment']['method_display'], 'Click')
+        self.assertEqual(len(response.data['payment']['items']), 1)
+        self.assertEqual(response.data['payment']['items'][0]['product_name'], 'Osh')
+        self.assertEqual(response.data['payment']['items'][0]['total_price'], '50000.00')
 
     def test_cashier_can_close_order_and_update_payment_type(self):
         self.client.force_authenticate(self.cashier)
@@ -128,6 +131,19 @@ class PaymentFlowTests(APITestCase):
         payment = Payment.objects.get(order=self.order)
         self.assertEqual(self.order.total_amount, Decimal('75000'))
         self.assertEqual(payment.amount, Decimal('47000'))
+
+    def test_payment_item_snapshot_is_not_changed_by_product_price(self):
+        self.order.complete_payment(Payment.Method.CARD, Decimal('50000'), self.user)
+        snapshot = PaymentItem.objects.get(payment=self.order.payment)
+
+        self.product.price = Decimal('40000')
+        self.product.save(update_fields=('price', 'updated_at'))
+        snapshot.refresh_from_db()
+
+        self.assertEqual(snapshot.product_name, 'Osh')
+        self.assertEqual(snapshot.unit_price, Decimal('25000'))
+        self.assertEqual(snapshot.quantity, 2)
+        self.assertEqual(snapshot.total_price, Decimal('50000'))
 
     def test_closing_order_requires_payment_method(self):
         response = self.client.patch(
