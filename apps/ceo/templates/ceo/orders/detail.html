@@ -1,0 +1,72 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}{{ order.display_code }} | KitchenFlow{% endblock %}
+{% block page_title %}Zakaz {{ order.display_code }}{% endblock %}
+
+{% block content %}
+<section class="order-detail-layout">
+    <div class="receipt-panel">
+        <div class="receipt-head">
+            <div>
+                <p class="eyebrow">Zakaz cheki</p>
+                <h2>{{ order.display_code }}</h2>
+                <span>{{ order.created_at|date:'d.m.Y, H:i' }}</span>
+            </div>
+            <span class="status-pill order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+        </div>
+
+        <div class="receipt-customer">
+            <div><small>Mijoz</small><strong>{{ order.customer_name|default:'Ko‘rsatilmagan' }}</strong></div>
+            <div><small>Zakaz turi</small><strong>{{ order.get_order_type_display }}</strong></div>
+            <div><small>Stol</small><strong>{% if order.table %}{{ order.table.name }}{% else %}Stolsiz{% endif %}</strong></div>
+        </div>
+
+        <div class="receipt-items">
+            <div class="receipt-row receipt-labels">
+                <span>Mahsulot</span><span>Narxi</span><span>Soni</span><span>Jami</span>
+            </div>
+            {% for item in order.items.all %}
+                <div class="receipt-row">
+                    <strong>{{ item.product.name }}</strong>
+                    <span>{{ item.unit_price }} so‘m</span>
+                    <span>{{ item.quantity }}</span>
+                    <strong>{{ item.total_price }} so‘m</strong>
+                </div>
+            {% empty %}
+                <div class="empty-panel">Mahsulotlar yo‘q.</div>
+            {% endfor %}
+        </div>
+
+        <div class="receipt-total">
+            <span>Jami to‘lov</span>
+            <strong>{{ order.total_amount }} so‘m</strong>
+        </div>
+        {% if order.note %}<p class="receipt-note"><strong>Izoh:</strong> {{ order.note }}</p>{% endif %}
+    </div>
+
+    <aside class="payment-panel">
+        <p class="eyebrow">To‘lov</p>
+        {% if order.is_paid %}
+            <span class="payment-method-mark payment-{{ order.payment.method }}">{{ order.payment.get_method_display }}</span>
+            <h2>{{ order.payment.amount }} so‘m</h2>
+            <dl class="payment-info">
+                <div><dt>Zakaz jami</dt><dd>{{ order.total_amount }} so‘m</dd></div>
+                <div><dt>Farq</dt><dd>{{ order.payment.difference_amount }} so‘m</dd></div>
+                <div><dt>To‘langan vaqt</dt><dd>{{ order.payment.paid_at|date:'d.m.Y H:i' }}</dd></div>
+                <div><dt>Qabul qilgan</dt><dd>{{ order.payment.received_by.name|default:'API orqali' }}</dd></div>
+            </dl>
+        {% else %}
+            <span class="payment-method-mark unpaid">To‘lanmagan</span>
+            <h2>{{ order.total_amount }} so‘m</h2>
+            <p>Zakazni tahrirlab, yopiq holat va to‘lov turini tanlang.</p>
+        {% endif %}
+        <div class="detail-actions">
+            <a class="primary-button" href="{% url 'order-payment' order.pk %}">
+                {% if order.is_paid %}To‘lovni tahrirlash{% else %}To‘lov qilish{% endif %}
+            </a>
+            <a class="primary-button" href="{% url 'order-update' order.pk %}">Tahrirlash</a>
+            <a class="ghost-button" href="{% url 'order-list' %}">Ro‘yxatga qaytish</a>
+        </div>
+    </aside>
+</section>
+{% endblock %}

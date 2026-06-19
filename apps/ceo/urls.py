@@ -12,7 +12,9 @@ from apps.ceo.views import (
     employee_update_view,
     order_create_view,
     order_delete_view,
+    order_detail_view,
     order_list_view,
+    order_payment_view,
     order_update_view,
     panel_login_view,
     panel_logout_view,
@@ -61,6 +63,8 @@ urlpatterns = [
     path('dashboard/table-categories/<int:pk>/delete/', table_category_delete_view, name='table-category-delete'),
     path('dashboard/orders/', order_list_view, name='order-list'),
     path('dashboard/orders/create/', order_create_view, name='order-create'),
+    path('dashboard/orders/<int:pk>/', order_detail_view, name='order-detail'),
+    path('dashboard/orders/<int:pk>/payment/', order_payment_view, name='order-payment'),
     path('dashboard/orders/<int:pk>/edit/', order_update_view, name='order-update'),
     path('dashboard/orders/<int:pk>/delete/', order_delete_view, name='order-delete'),
 ]

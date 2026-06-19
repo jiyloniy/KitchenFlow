@@ -8,7 +8,7 @@
     <article class="hero-stat dark-card">
         <span>Jami zakazlar</span>
         <strong>{{ total_count }}</strong>
-        <small>Sotuv oqimi</small>
+        <small>{{ paid_total }} so‘m tushum</small>
     </article>
     <article class="hero-stat">
         <span>Ochiq</span>
@@ -81,9 +81,21 @@
                 <div class="order-total">
                     <small>Jami summa</small>
                     <strong>{{ order.total_amount }} so‘m</strong>
+                    {% if order.is_paid %}
+                        <span class="payment-badge payment-{{ order.payment.method }}">
+                            {{ order.payment.get_method_display }}: {{ order.payment.amount }} so‘m
+                        </span>
+                    {% else %}
+                        <span class="payment-badge unpaid">To‘lanmagan</span>
+                    {% endif %}
                 </div>
                 <p>{{ order.created_at|date:'d.m.Y H:i' }}</p>
                 <div class="card-actions">
+                    {% if order.is_paid %}
+                        <a class="primary-button" href="{% url 'order-detail' order.pk %}">Chekni ko‘rish</a>
+                    {% else %}
+                        <a class="primary-button" href="{% url 'order-payment' order.pk %}">To‘lov qilish</a>
+                    {% endif %}
                     <a class="text-button" href="{% url 'order-update' order.pk %}">Tahrirlash</a>
                     <a class="danger-button" href="{% url 'order-delete' order.pk %}">O‘chirish</a>
                 </div>

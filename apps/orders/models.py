@@ -36,9 +36,47 @@ class Order(models.Model):
             raise ValidationError({'table': 'Saboy zakaz uchun stol tanlanmaydi.'})
 
     def recalculate_total(self):
+        previous_total = self.total_amount
+        try:
+            payment = self.payment
+        except self._meta.apps.get_model('payments', 'Payment').DoesNotExist:
+            payment = None
+
         total = self.items.aggregate(total=models.Sum(models.F('quantity') * models.F('unit_price')))['total']
         self.total_amount = total or Decimal('0')
         self.save(update_fields=['total_amount', 'updated_at'])
+
+        if payment and payment.amount == previous_total and payment.amount != self.total_amount:
+            payment.amount = self.total_amount
+            payment.save(update_fields=['amount', 'updated_at'])
+
+    def complete_payment(self, method, amount, received_by=None):
+        if not self.items.exists():
+            raise ValidationError('Mahsulotsiz zakazni yopib bo‘lmaydi.')
+
+        amount = Decimal(str(amount))
+        if amount <= 0:
+            raise ValidationError('To‘lov summasi 0 dan katta bo‘lishi kerak.')
+
+        self.recalculate_total()
+        Payment = self._meta.apps.get_model('payments', 'Payment')
+        payment, _ = Payment.objects.update_or_create(
+            order=self,
+            defaults={
+                'method': method,
+                'amount': amount,
+                'received_by': received_by,
+            },
+        )
+        self.payment = payment
+        if self.status != self.Status.CLOSED:
+            self.status = self.Status.CLOSED
+            self.save(update_fields=['status', 'updated_at'])
+        return payment
+
+    @property
+    def is_paid(self):
+        return hasattr(self, 'payment')
 
     @property
     def code_prefix(self):

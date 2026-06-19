@@ -1,3 +1,95 @@
-from django.test import TestCase
+from decimal import Decimal
 
-# Create your tests here.
+from django.test import TestCase
+from django.urls import reverse
+
+from apps.orders.models import Order, OrderItem
+from apps.payments.models import Payment
+from apps.products.models import Category, Product
+from apps.tables.models import Table, TableCategory
+from apps.users.models import User
+
+
+class CeoOrderPaymentTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='panel-ceo',
+            password='strong-password',
+            name='Panel CEO',
+            role=User.Role.CEO,
+        )
+        category = Category.objects.create(name='Taomlar', slug='taomlar')
+        self.product = Product.objects.create(
+            category=category,
+            name='Manti',
+            slug='manti',
+            price=Decimal('12000'),
+        )
+        table_category = TableCategory.objects.create(name='Zal', slug='zal')
+        self.table = Table.objects.create(
+            category=table_category,
+            name='Stol 1',
+            number=1,
+        )
+        self.order = Order.objects.create(table=self.table)
+        self.item = OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            quantity=2,
+            unit_price=self.product.price,
+        )
+        self.order.recalculate_total()
+        self.client.force_login(self.user)
+
+    def test_closing_order_from_panel_creates_payment(self):
+        response = self.client.post(reverse('order-update', args=(self.order.pk,)), {
+            'order_type': Order.Type.DINE_IN,
+            'status': Order.Status.CLOSED,
+            'table': self.table.pk,
+            'customer_name': 'Ali',
+            'note': '',
+            'payment_method': Payment.Method.CARD,
+            'payment_amount': '35000.00',
+            'items-TOTAL_FORMS': '1',
+            'items-INITIAL_FORMS': '1',
+            'items-MIN_NUM_FORMS': '0',
+            'items-MAX_NUM_FORMS': '1000',
+            'items-0-id': self.item.pk,
+            'items-0-order': self.order.pk,
+            'items-0-product': self.product.pk,
+            'items-0-quantity': '3',
+        })
+
+        self.assertRedirects(response, reverse('order-list'))
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.payment.method, Payment.Method.CARD)
+        self.assertEqual(self.order.payment.amount, Decimal('35000'))
+
+    def test_order_list_and_detail_show_payment_information(self):
+        self.order.complete_payment(Payment.Method.CLICK, Decimal('23000'), self.user)
+
+        list_response = self.client.get(reverse('order-list'))
+        detail_response = self.client.get(reverse('order-detail', args=(self.order.pk,)))
+
+        self.assertContains(list_response, 'Click: 23000,00 so‘m')
+        self.assertContains(detail_response, 'Zakaz cheki')
+        self.assertContains(detail_response, '24000,00 so‘m')
+
+    def test_payment_page_creates_and_updates_payment(self):
+        payment_url = reverse('order-payment', args=(self.order.pk,))
+
+        create_response = self.client.post(payment_url, {
+            'payment_type': Payment.Method.CASH,
+            'amount': '22000.00',
+        })
+        update_response = self.client.post(payment_url, {
+            'payment_type': Payment.Method.CLICK,
+            'amount': '21000.00',
+        })
+
+        self.assertRedirects(create_response, reverse('order-detail', args=(self.order.pk,)))
+        self.assertRedirects(update_response, reverse('order-detail', args=(self.order.pk,)))
+        self.assertEqual(Payment.objects.filter(order=self.order).count(), 1)
+        payment = Payment.objects.get(order=self.order)
+        self.assertEqual(payment.method, Payment.Method.CLICK)
+        self.assertEqual(payment.amount, Decimal('21000'))

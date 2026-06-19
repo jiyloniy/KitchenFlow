@@ -32,7 +32,9 @@ from .tables import (
 from .orders import (
     order_create_view,
     order_delete_view,
+    order_detail_view,
     order_list_view,
+    order_payment_view,
     order_update_view,
 )
 
@@ -64,6 +66,8 @@ __all__ = [
     'table_update_view',
     'order_create_view',
     'order_delete_view',
+    'order_detail_view',
     'order_list_view',
+    'order_payment_view',
     'order_update_view',
 ]

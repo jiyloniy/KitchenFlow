@@ -45,6 +45,21 @@
                         {{ form.note }}
                         {{ form.note.errors }}
                     </div>
+                    <div class="field span-2 payment-method-field" id="payment-method-field">
+                        <div class="form-grid">
+                            <div class="field">
+                                <label for="{{ form.payment_method.id_for_label }}">To‘lov turi</label>
+                                {{ form.payment_method }}
+                                {{ form.payment_method.errors }}
+                            </div>
+                            <div class="field">
+                                <label for="{{ form.payment_amount.id_for_label }}">To‘lanadigan summa</label>
+                                {{ form.payment_amount }}
+                                {{ form.payment_amount.errors }}
+                            </div>
+                        </div>
+                        <small>Zakaz yopilganda to‘lov avtomatik jami summaga yaratiladi.</small>
+                    </div>
                 </div>
 
                 <div class="preview-block">
@@ -58,6 +73,11 @@
                                     <label>Mahsulot</label>
                                     {{ item_form.product }}
                                     {{ item_form.product.errors }}
+                                </div>
+                                <div class="item-price-summary">
+                                    <small>Dona narxi</small>
+                                    <strong class="item-unit-price">{{ item_form.instance.unit_price|default:0 }} so‘m</strong>
+                                    <span class="item-line-total">0 so‘m</span>
                                 </div>
                                 <div class="field">
                                     <label>Miqdor</label>
@@ -88,7 +108,12 @@
                     <span class="table-badge">{% if order %}{{ order.display_code }}{% else %}Yangi{% endif %}</span>
                     <h3>{% if order %}{{ order.get_order_type_display }}{% else %}Yangi zakaz{% endif %}</h3>
                     <p>{% if order and order.table %}{{ order.table.name }}{% else %}Stol tanlanmagan{% endif %}</p>
-                    <strong>{% if order %}{{ order.total_amount }} so‘m{% else %}0 so‘m{% endif %}</strong>
+                    <strong id="live-order-total">{% if order %}{{ order.total_amount }} so‘m{% else %}0 so‘m{% endif %}</strong>
+                    {% if order and order.is_paid %}
+                        <span class="payment-badge payment-{{ order.payment.method }}">
+                            {{ order.payment.get_method_display }} orqali to‘langan
+                        </span>
+                    {% endif %}
                 </div>
             </aside>
         </div>
@@ -106,6 +131,11 @@
                 <label>Mahsulot</label>
                 {{ formset.empty_form.product }}
             </div>
+            <div class="item-price-summary">
+                <small>Dona narxi</small>
+                <strong class="item-unit-price">0 so‘m</strong>
+                <span class="item-line-total">0 so‘m</span>
+            </div>
             <div class="field">
                 <label>Miqdor</label>
                 {{ formset.empty_form.quantity }}
@@ -115,12 +145,48 @@
     </template>
 </section>
 
+{{ product_prices|json_script:'product-prices' }}
 <script>
     (function () {
         const addButton = document.getElementById('add-order-item');
         const items = document.getElementById('order-items');
         const template = document.getElementById('empty-order-item-template');
         const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+        const statusField = document.getElementById('id_status');
+        const paymentField = document.getElementById('payment-method-field');
+        const liveTotal = document.getElementById('live-order-total');
+        const pricesNode = document.getElementById('product-prices');
+        const prices = pricesNode ? JSON.parse(pricesNode.textContent) : {};
+        const paymentAmount = document.getElementById('id_payment_amount');
+        let paymentAmountTouched = Boolean(paymentAmount?.value);
+
+        function formatMoney(value) {
+            return new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
+        }
+
+        function updateSummary() {
+            let total = 0;
+            items.querySelectorAll('.order-item-row').forEach(function (row) {
+                const product = row.querySelector('select[name$="-product"]');
+                const quantity = row.querySelector('input[name$="-quantity"]');
+                const deleted = row.querySelector('input[name$="-DELETE"]');
+                const unitPrice = Number(prices[product?.value] || 0);
+                const lineTotal = deleted?.checked ? 0 : unitPrice * Number(quantity?.value || 0);
+                total += lineTotal;
+                const unitNode = row.querySelector('.item-unit-price');
+                const lineNode = row.querySelector('.item-line-total');
+                if (unitNode) unitNode.textContent = formatMoney(unitPrice);
+                if (lineNode) lineNode.textContent = formatMoney(lineTotal);
+            });
+            if (liveTotal) liveTotal.textContent = formatMoney(total);
+            if (paymentAmount && !paymentAmountTouched) paymentAmount.value = total.toFixed(2);
+        }
+
+        function togglePaymentField() {
+            if (paymentField && statusField) {
+                paymentField.hidden = statusField.value !== 'closed';
+            }
+        }
 
         if (!addButton || !items || !template || !totalForms) {
             return;
@@ -131,6 +197,7 @@
             const html = template.innerHTML.replaceAll('__prefix__', index);
             items.insertAdjacentHTML('beforeend', html);
             totalForms.value = index + 1;
+            updateSummary();
         });
 
         items.addEventListener('click', function (event) {
@@ -138,7 +205,15 @@
                 return;
             }
             event.target.closest('.order-item-row').remove();
+            updateSummary();
         });
+
+        items.addEventListener('input', updateSummary);
+        items.addEventListener('change', updateSummary);
+        statusField?.addEventListener('change', togglePaymentField);
+        paymentAmount?.addEventListener('input', function () { paymentAmountTouched = true; });
+        togglePaymentField();
+        updateSummary();
     })();
 </script>
 {% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'ceo/panel.html' %}
+
+{% block title %}{{ order.display_code }} to‘lovi | KitchenFlow{% endblock %}
+{% block page_title %}{% if order.is_paid %}To‘lovni tahrirlash{% else %}Zakazni yopish{% endif %}{% endblock %}
+
+{% block content %}
+<section class="payment-workspace">
+    <div class="payment-order-summary">
+        <div class="receipt-head">
+            <div>
+                <p class="eyebrow">Zakaz</p>
+                <h2>{{ order.display_code }}</h2>
+            </div>
+            <span class="status-pill order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+        </div>
+
+        <div class="payment-order-meta">
+            <span>{{ order.customer_name|default:'Mijoz ko‘rsatilmagan' }}</span>
+            <span>{{ order.get_order_type_display }}</span>
+            <span>{% if order.table %}{{ order.table.name }}{% else %}Stolsiz{% endif %}</span>
+        </div>
+
+        <div class="payment-item-list">
+            {% for item in order.items.all %}
+                <div>
+                    <span><strong>{{ item.product.name }}</strong> × {{ item.quantity }}</span>
+                    <strong>{{ item.total_price }} so‘m</strong>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="payment-grand-total">
+            <span>Zakaz jami</span>
+            <strong>{{ order.total_amount }} so‘m</strong>
+        </div>
+    </div>
+
+    <form method="post" class="payment-method-form">
+        {% csrf_token %}
+        <p class="eyebrow">To‘lov turi</p>
+        <h2>{% if order.is_paid %}To‘lov usulini yangilang{% else %}Qanday to‘lanadi?{% endif %}</h2>
+        <div class="payment-amount-field">
+            <label for="{{ form.amount.id_for_label }}">Qabul qilinadigan summa</label>
+            {{ form.amount }}
+            {% if form.amount.errors %}<div class="form-error">{{ form.amount.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="payment-difference-row">
+            <span>Zakaz jami <strong>{{ order.total_amount }} so‘m</strong></span>
+            <span>Farq <strong id="payment-difference">0 so‘m</strong></span>
+        </div>
+        {% if form.payment_type.errors %}<div class="form-error">{{ form.payment_type.errors.0 }}</div>{% endif %}
+
+        <div class="payment-method-options">
+            {% for radio in form.payment_type %}
+                <label class="payment-method-option payment-option-{{ radio.data.value }}">
+                    {{ radio.tag }}
+                    <span class="payment-option-icon">
+                        {% if radio.data.value == 'cash' %}N{% elif radio.data.value == 'card' %}K{% else %}C{% endif %}
+                    </span>
+                    <span>
+                        <strong>{{ radio.choice_label }}</strong>
+                        <small>
+                            {% if radio.data.value == 'cash' %}Naqd pul orqali{% elif radio.data.value == 'card' %}Bank kartasi orqali{% else %}Click to‘lov tizimi orqali{% endif %}
+                        </small>
+                    </span>
+                </label>
+            {% endfor %}
+        </div>
+
+        <div class="payment-submit-row">
+            <a class="ghost-button" href="{% url 'order-detail' order.pk %}">Bekor qilish</a>
+            <button type="submit" class="primary-button">
+                {% if order.is_paid %}To‘lovni yangilash{% else %}To‘lash va chekni yopish{% endif %}
+            </button>
+        </div>
+    </form>
+</section>
+<script>
+    (function () {
+        const amountInput = document.getElementById('id_amount');
+        const difference = document.getElementById('payment-difference');
+        const orderTotal = Number('{{ order.total_amount|stringformat:"f" }}');
+        if (!amountInput || !difference) return;
+
+        function updateDifference() {
+            const value = Number(amountInput.value || 0) - orderTotal;
+            difference.textContent = new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
+            difference.classList.toggle('negative', value < 0);
+            difference.classList.toggle('positive', value > 0);
+        }
+
+        amountInput.addEventListener('input', updateDifference);
+        updateDifference();
+    })();
+</script>
+{% endblock %}

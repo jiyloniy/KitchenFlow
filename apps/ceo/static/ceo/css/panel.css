@@ -772,13 +772,34 @@ textarea.form-control {
 
 .order-item-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 120px auto;
+    grid-template-columns: minmax(220px, 1fr) 110px minmax(150px, auto) auto;
     gap: 12px;
     align-items: end;
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: 8px;
     background: #fbfbfa;
+}
+
+.item-price-summary {
+    min-height: 46px;
+    display: grid;
+    align-content: center;
+    gap: 3px;
+}
+
+.item-price-summary small,
+.item-price-summary span {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.item-price-summary strong {
+    font-size: 14px;
+}
+
+.payment-method-field[hidden] {
+    display: none;
 }
 
 .add-item-button {
@@ -841,6 +862,374 @@ textarea.form-control {
 .order-total small,
 .order-total strong {
     display: block;
+}
+
+.payment-badge {
+    width: fit-content;
+    min-height: 28px;
+    display: inline-flex;
+    align-items: center;
+    margin-top: 10px;
+    border-radius: 999px;
+    padding: 0 10px;
+    background: #e9f7f2;
+    color: #167a60;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.payment-badge.unpaid,
+.payment-method-mark.unpaid {
+    background: #f1f5f9;
+    color: var(--muted);
+}
+
+.payment-click {
+    background: #e8f4ff;
+    color: #136aa8;
+}
+
+.payment-card {
+    background: #f0edff;
+    color: #6546b8;
+}
+
+.payment-cash {
+    background: #e9f7f2;
+    color: #167a60;
+}
+
+.order-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+    gap: 20px;
+    align-items: start;
+}
+
+.receipt-panel,
+.payment-panel {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: white;
+}
+
+.receipt-panel {
+    padding: 24px;
+}
+
+.receipt-head,
+.receipt-customer,
+.receipt-row,
+.receipt-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.receipt-head h2 {
+    margin: 4px 0;
+    font-size: 28px;
+}
+
+.receipt-head > div > span,
+.receipt-customer small,
+.receipt-labels,
+.payment-info dt {
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.receipt-customer {
+    margin: 22px 0;
+    padding: 16px 0;
+    border-block: 1px solid var(--line);
+}
+
+.receipt-customer > div {
+    display: grid;
+    gap: 5px;
+}
+
+.receipt-row {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) 150px 60px 160px;
+    min-height: 50px;
+    border-bottom: 1px solid var(--line);
+}
+
+.receipt-row > :last-child {
+    text-align: right;
+}
+
+.receipt-total {
+    padding-top: 22px;
+    font-weight: 900;
+}
+
+.receipt-total strong {
+    font-size: 26px;
+}
+
+.receipt-note {
+    margin: 20px 0 0;
+    padding: 14px;
+    border-radius: 8px;
+    background: #f7f7f6;
+    color: var(--muted);
+}
+
+.payment-panel {
+    position: sticky;
+    top: 20px;
+    padding: 22px;
+}
+
+.payment-method-mark {
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    padding: 0 12px;
+    font-weight: 900;
+}
+
+.payment-panel h2 {
+    margin: 18px 0;
+    font-size: 30px;
+}
+
+.payment-panel > p:not(.eyebrow) {
+    color: var(--muted);
+    line-height: 1.5;
+}
+
+.payment-info {
+    display: grid;
+    gap: 14px;
+    margin: 0;
+}
+
+.payment-info div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.payment-info dd {
+    margin: 0;
+    font-weight: 800;
+    text-align: right;
+}
+
+.detail-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 22px;
+}
+
+.detail-actions a {
+    justify-content: center;
+}
+
+.payment-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.payment-order-summary,
+.payment-method-form {
+    padding: 24px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: white;
+}
+
+.payment-order-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0;
+}
+
+.payment-order-meta span {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0 10px;
+    background: #eef3f8;
+    color: #435466;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.payment-item-list {
+    border-top: 1px solid var(--line);
+}
+
+.payment-item-list > div {
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.payment-item-list span {
+    color: var(--muted);
+}
+
+.payment-item-list span strong {
+    color: var(--deep);
+}
+
+.payment-grand-total {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 24px;
+}
+
+.payment-grand-total span {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.payment-grand-total strong {
+    font-size: 30px;
+}
+
+.payment-method-form h2 {
+    margin: 4px 0 20px;
+    font-size: 24px;
+}
+
+.payment-amount-field {
+    margin-bottom: 12px;
+}
+
+.payment-amount-field label {
+    display: block;
+    margin-bottom: 7px;
+    font-weight: 800;
+}
+
+.payment-amount-field input {
+    width: 100%;
+    min-height: 54px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 20px;
+    font-weight: 900;
+}
+
+.payment-difference-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 12px;
+    border-radius: 8px;
+    background: #f7f7f6;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.payment-difference-row strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--deep);
+    font-size: 14px;
+}
+
+.payment-difference-row .negative {
+    color: var(--danger);
+}
+
+.payment-difference-row .positive {
+    color: #167a60;
+}
+
+.payment-method-options {
+    display: grid;
+    gap: 10px;
+}
+
+.payment-method-option {
+    min-height: 72px;
+    display: grid;
+    grid-template-columns: 0 44px minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.payment-method-option:has(input:checked) {
+    border-color: var(--brand);
+    background: #f3faf7;
+}
+
+.payment-method-option input {
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+
+.payment-option-icon {
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: #eef3f8;
+    color: #435466;
+    font-weight: 950;
+}
+
+.payment-option-cash .payment-option-icon {
+    background: #e9f7f2;
+    color: #167a60;
+}
+
+.payment-option-card .payment-option-icon {
+    background: #f0edff;
+    color: #6546b8;
+}
+
+.payment-option-click .payment-option-icon {
+    background: #e8f4ff;
+    color: #136aa8;
+}
+
+.payment-method-option strong,
+.payment-method-option small {
+    display: block;
+}
+
+.payment-method-option small {
+    margin-top: 4px;
+    color: var(--muted);
+}
+
+.payment-submit-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
 }
 
 .order-total small {
@@ -1314,6 +1703,43 @@ th {
     .order-card-grid,
     .order-item-row {
         grid-template-columns: 1fr;
+    }
+
+    .order-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .payment-order-summary,
+    .payment-method-form {
+        padding: 16px;
+    }
+
+    .payment-grand-total,
+    .payment-submit-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .payment-panel {
+        position: static;
+    }
+
+    .receipt-panel {
+        padding: 16px;
+        overflow-x: auto;
+    }
+
+    .receipt-customer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .receipt-row {
+        min-width: 660px;
     }
 
     .sidebar {
