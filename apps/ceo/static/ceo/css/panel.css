@@ -16,6 +16,10 @@
     box-sizing: border-box;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
     margin: 0;
     background: var(--bg);
@@ -798,7 +802,9 @@ textarea.form-control {
     border-radius: 8px;
     background: #eef3f8;
     color: var(--muted);
-    font-size: 11px;
+    padding: 4px;
+    text-align: center;
+    font-size: 10px;
     font-weight: 800;
 }
 

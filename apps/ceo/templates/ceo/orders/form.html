@@ -72,10 +72,10 @@
                                 <div class="order-item-media">
                                     {% if item_form.instance.product_id and item_form.instance.product.display_image %}
                                         <img class="order-item-thumb" src="{{ item_form.instance.product.display_image.url }}" alt="{{ item_form.instance.product.name }}">
-                                        <span class="order-item-placeholder" hidden>Rasm</span>
+                                        <span class="order-item-placeholder" hidden>Rasm yo‘q</span>
                                     {% else %}
                                         <img class="order-item-thumb" src="" alt="" hidden>
-                                        <span class="order-item-placeholder">Rasm</span>
+                                        <span class="order-item-placeholder">Rasm yo‘q</span>
                                     {% endif %}
                                 </div>
                                 <div class="field">
@@ -138,7 +138,7 @@
             {% for hidden in formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
             <div class="order-item-media">
                 <img class="order-item-thumb" src="" alt="" hidden>
-                <span class="order-item-placeholder">Rasm</span>
+                <span class="order-item-placeholder">Rasm yo‘q</span>
             </div>
             <div class="field">
                 <label>Mahsulot</label>
@@ -197,11 +197,25 @@
                 if (unitNode) unitNode.textContent = formatMoney(unitPrice);
                 if (lineNode) lineNode.textContent = formatMoney(lineTotal);
                 if (imageNode) {
-                    imageNode.src = imageUrl;
                     imageNode.alt = product?.selectedOptions[0]?.text || '';
                     imageNode.hidden = !imageUrl;
+                    imageNode.style.display = imageUrl ? 'block' : 'none';
+                    if (imageUrl && imageNode.src !== new URL(imageUrl, window.location.origin).href) {
+                        imageNode.src = imageUrl;
+                    }
+                    imageNode.onerror = function () {
+                        imageNode.hidden = true;
+                        imageNode.style.display = 'none';
+                        if (placeholderNode) {
+                            placeholderNode.hidden = false;
+                            placeholderNode.style.display = 'grid';
+                        }
+                    };
                 }
-                if (placeholderNode) placeholderNode.hidden = Boolean(imageUrl);
+                if (placeholderNode) {
+                    placeholderNode.hidden = Boolean(imageUrl);
+                    placeholderNode.style.display = imageUrl ? 'none' : 'grid';
+                }
             });
             if (liveTotal) liveTotal.textContent = formatMoney(total);
             if (paymentAmount && !paymentAmountTouched) paymentAmount.value = total.toFixed(2);
