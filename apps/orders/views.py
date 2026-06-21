@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
 from apps.orders.models import Order
-from apps.orders.permissions import IsCeoOrCashier, IsCeoOrReadOnly
+from apps.orders.permissions import CanCreateOrder, IsCeoOrCashier, IsCeoOrReadOnly
 from apps.orders.serializers import OrderSerializer
 from apps.payments.models import PaymentPart
 
@@ -38,7 +38,8 @@ class CompletePaymentSerializer(serializers.Serializer):
 class OrderViewSet(ModelViewSet):
     """
     Zakaz CRUD API.
-    GET hamma uchun ochiq, yozish faqat CEO uchun.
+    GET hamma uchun ochiq. Order yaratish CEO, kassir va ofitsiant uchun;
+    qolgan CRUD amallari faqat CEO uchun.
     """
     queryset = Order.objects.select_related(
         'table',
@@ -48,6 +49,8 @@ class OrderViewSet(ModelViewSet):
     permission_classes = (IsCeoOrReadOnly,)
 
     def get_permissions(self):
+        if self.action == 'create':
+            return (CanCreateOrder(),)
         if self.action == 'close':
             return (IsCeoOrCashier(),)
         return super().get_permissions()

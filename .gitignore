@@ -11,3 +11,5 @@ staticfiles/
 media/
 .idea/
 .vscode/
+migrations/
+

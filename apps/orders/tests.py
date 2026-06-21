@@ -25,6 +25,12 @@ class PaymentFlowTests(APITestCase):
             name='Kassir',
             role=User.Role.CASHIER,
         )
+        self.waiter = User.objects.create_user(
+            username='waiter',
+            password='strong-password',
+            name='Ofitsiant',
+            role=User.Role.WAITER,
+        )
         category = Category.objects.create(name='Taomlar', slug='taomlar')
         self.product = Product.objects.create(
             category=category,
@@ -89,6 +95,33 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(order.status, Order.Status.OPEN)
         self.assertFalse(Payment.objects.filter(order=order).exists())
         self.assertIsNone(response.data['payment'])
+
+    def test_cashier_and_waiter_can_create_orders(self):
+        payload = {
+            'order_type': Order.Type.DINE_IN,
+            'table': self.table.pk,
+            'items': [{'product': self.product.pk, 'quantity': 1}],
+        }
+
+        for user in (self.cashier, self.waiter):
+            with self.subTest(role=user.role):
+                self.client.force_authenticate(user)
+                response = self.client.post(reverse('api-order-list'), payload, format='json')
+
+                self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+                self.assertEqual(response.data['status'], Order.Status.OPEN)
+                self.assertIsNone(response.data['payment'])
+
+    def test_waiter_cannot_edit_existing_order(self):
+        self.client.force_authenticate(self.waiter)
+
+        response = self.client.patch(
+            reverse('api-order-detail', args=(self.order.pk,)),
+            {'customer_name': 'Ruxsatsiz o‘zgarish'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_order_get_returns_payment_details(self):
         self.order.complete_payment([{'method': PaymentPart.Method.TERMINAL, 'amount': Decimal('49000')}], self.user)
