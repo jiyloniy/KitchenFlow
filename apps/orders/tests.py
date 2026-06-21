@@ -66,6 +66,47 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(response.data['payment']['items'][0]['product_name'], 'Osh')
         self.assertEqual(response.data['payment']['items'][0]['total_price'], '50000.00')
 
+    def test_create_order_stays_open_and_does_not_create_payment(self):
+        response = self.client.post(
+            reverse('api-order-list'),
+            {
+                'order_type': Order.Type.DINE_IN,
+                'status': Order.Status.CLOSED,
+                'table': self.table.pk,
+                'items': [{'product': self.product.pk, 'quantity': 1}],
+                # Eski clientlar yuborishi mumkin, ammo order endpointi payment yaratmaydi.
+                'payment_method': Payment.Method.CARD,
+                'payment_amount': '25000.00',
+            },
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        order = Order.objects.get(pk=response.data['id'])
+        self.assertEqual(order.status, Order.Status.OPEN)
+        self.assertFalse(Payment.objects.filter(order=order).exists())
+        self.assertIsNone(response.data['payment'])
+
+    def test_order_get_returns_payment_details(self):
+        self.order.complete_payment(Payment.Method.CARD, Decimal('49000'), self.user)
+
+        detail_response = self.client.get(
+            reverse('api-order-detail', args=(self.order.pk,)),
+        )
+        list_response = self.client.get(reverse('api-order-list'))
+
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data['payment']['method'], Payment.Method.CARD)
+        self.assertEqual(detail_response.data['payment']['amount'], '49000.00')
+        self.assertEqual(detail_response.data['payment']['received_by'], self.user.pk)
+        self.assertEqual(detail_response.data['payment']['items'][0]['product_name'], 'Osh')
+
+        listed_order = next(
+            order for order in list_response.data['results'] if order['id'] == self.order.pk
+        )
+        self.assertEqual(listed_order['payment']['method'], Payment.Method.CARD)
+        self.assertEqual(listed_order['payment']['amount'], '49000.00')
+
     def test_cashier_can_close_order_and_update_payment_type(self):
         self.client.force_authenticate(self.cashier)
         close_url = reverse('api-order-close', args=(self.order.pk,))
@@ -146,15 +187,17 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(snapshot.quantity, 2)
         self.assertEqual(snapshot.total_price, Decimal('50000'))
 
-    def test_closing_order_requires_payment_method(self):
+    def test_order_cannot_be_closed_through_crud_endpoint(self):
         response = self.client.patch(
             reverse('api-order-detail', args=(self.order.pk,)),
             {'status': Order.Status.CLOSED},
             format='json',
         )
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn('payment_method', response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.order.refresh_from_db()
+        self.assertEqual(self.order.status, Order.Status.OPEN)
+        self.assertFalse(Payment.objects.filter(order=self.order).exists())
 
     def test_paid_order_items_can_be_updated_through_api(self):
         self.order.complete_payment(Payment.Method.CARD, Decimal('50000'), self.user)
