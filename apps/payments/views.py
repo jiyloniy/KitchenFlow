@@ -13,29 +13,24 @@ from apps.payments.serializers import PaymentSerializer, PaymentWriteSerializer
 
 PAYMENT_CREATE_SCHEMA = openapi.Schema(
     type=openapi.TYPE_OBJECT,
-    required=('order', 'payment_type', 'amount'),
+    required=('order', 'payments'),
     properties={
         'order': openapi.Schema(type=openapi.TYPE_INTEGER, description='Order ID', example=12),
-        'payment_type': openapi.Schema(
-            type=openapi.TYPE_STRING,
-            enum=('cash', 'card', 'click'),
-            example='click',
-        ),
-        'amount': openapi.Schema(
-            type=openapi.TYPE_STRING,
-            format='decimal',
-            description='Real qabul qilingan summa',
-            example='145000.00',
+        'payments': openapi.Schema(
+            type=openapi.TYPE_ARRAY,
+            items=openapi.Schema(type=openapi.TYPE_OBJECT, properties={
+                'method': openapi.Schema(type=openapi.TYPE_STRING, enum=('cash', 'click', 'terminal')),
+                'amount': openapi.Schema(type=openapi.TYPE_STRING, format='decimal'),
+            }),
         ),
     },
 )
 
 PAYMENT_UPDATE_SCHEMA = openapi.Schema(
     type=openapi.TYPE_OBJECT,
-    required=('payment_type', 'amount'),
+    required=('payments',),
     properties={
-        'payment_type': PAYMENT_CREATE_SCHEMA.properties['payment_type'],
-        'amount': PAYMENT_CREATE_SCHEMA.properties['amount'],
+        'payments': PAYMENT_CREATE_SCHEMA.properties['payments'],
     },
 )
 
@@ -54,7 +49,7 @@ class PaymentViewSet(ModelViewSet):
     """
 
     queryset = Payment.objects.select_related('order', 'received_by').prefetch_related(
-        'items'
+        'items', 'parts'
     ).order_by('-paid_at')
     permission_classes = (IsCeoOrCashier,)
 
@@ -72,9 +67,9 @@ class PaymentViewSet(ModelViewSet):
         return super().retrieve(request, *args, **kwargs)
 
     @swagger_auto_schema(
-        operation_summary='Payment yaratish va zakazni yopish',
+        operation_summary='Multi-payment yaratish va zakazni yopish',
         operation_description=(
-            'Order ID, payment turi va real qabul qilingan summa yuboriladi. '
+            'Order ID va payments ichida bir yoki bir nechta to‘lov usuli hamda summasi yuboriladi. '
             'Payment yaratilgach order avtomatik yopiladi va order mahsulotlari PaymentItem '
             'snapshotlariga nusxalanadi. Keyingi mahsulot narxi o‘zgarishi tarixiy itemlarga ta’sir qilmaydi.'
         ),
@@ -90,7 +85,7 @@ class PaymentViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         operation_summary='Paymentni to‘liq yangilash',
-        operation_description='Payment turi va summasi yangilanadi, item snapshotlari orderning joriy tarkibidan sinxronlanadi.',
+        operation_description='Payment qismlari to‘liq yangilanadi, item snapshotlari orderning joriy tarkibidan sinxronlanadi.',
         request_body=PAYMENT_UPDATE_SCHEMA,
         responses={200: PaymentSerializer},
         tags=('Payments',),

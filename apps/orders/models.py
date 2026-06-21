@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 
 class Order(models.Model):
@@ -47,30 +47,41 @@ class Order(models.Model):
         self.save(update_fields=['total_amount', 'updated_at'])
 
         if payment and payment.amount == previous_total and payment.amount != self.total_amount:
-            payment.amount = self.total_amount
-            payment.save(update_fields=['amount', 'updated_at'])
+            payment.adjust_total(self.total_amount)
         if payment:
             payment.sync_items_from_order()
 
-    def complete_payment(self, method, amount, received_by=None):
+    @transaction.atomic
+    def complete_payment(self, parts, received_by=None):
         if not self.items.exists():
             raise ValidationError('Mahsulotsiz zakazni yopib bo‘lmaydi.')
 
-        amount = Decimal(str(amount))
-        if amount <= 0:
-            raise ValidationError('To‘lov summasi 0 dan katta bo‘lishi kerak.')
+        if not parts:
+            raise ValidationError('Kamida bitta to‘lov usulini kiriting.')
+
+        normalized_parts = []
+        used_methods = set()
+        for part in parts:
+            method = part['method']
+            amount = Decimal(str(part['amount']))
+            if amount <= 0:
+                raise ValidationError('Har bir to‘lov summasi 0 dan katta bo‘lishi kerak.')
+            if method in used_methods:
+                raise ValidationError('Bir xil to‘lov usulini ikki marta yubormang.')
+            used_methods.add(method)
+            normalized_parts.append({'method': method, 'amount': amount})
 
         self.recalculate_total()
         Payment = self._meta.apps.get_model('payments', 'Payment')
         payment, _ = Payment.objects.update_or_create(
             order=self,
             defaults={
-                'method': method,
-                'amount': amount,
+                'amount': sum((part['amount'] for part in normalized_parts), Decimal('0')),
                 'received_by': received_by,
             },
         )
         self.payment = payment
+        payment.replace_parts(normalized_parts)
         payment.sync_items_from_order()
         if self.status != self.Status.CLOSED:
             self.status = self.Status.CLOSED

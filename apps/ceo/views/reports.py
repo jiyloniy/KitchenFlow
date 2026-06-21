@@ -9,7 +9,7 @@ from django.utils.dateparse import parse_date
 
 from apps.ceo.decorators import ceo_required
 from apps.orders.models import Order
-from apps.payments.models import Payment, PaymentItem
+from apps.payments.models import Payment, PaymentItem, PaymentPart
 from apps.products.models import Category, Product
 from apps.users.models import User
 
@@ -65,12 +65,12 @@ def cash_report_view(request):
     receiver_id = request.GET.get('received_by', '').strip()
 
     payments = apply_payment_dates(
-        Payment.objects.select_related('order', 'received_by').prefetch_related('items'),
+        Payment.objects.select_related('order', 'received_by').prefetch_related('items', 'parts'),
         start,
         end,
     )
-    if payment_method in Payment.Method.values:
-        payments = payments.filter(method=payment_method)
+    if payment_method in PaymentPart.Method.values:
+        payments = payments.filter(parts__method=payment_method)
     else:
         payment_method = ''
     if order_type in Order.Type.values:
@@ -100,7 +100,12 @@ def cash_report_view(request):
     if selected_product or selected_category:
         payments = payments.filter(pk__in=report_items.values('payment_id')).distinct()
 
-    payment_summary = payments.aggregate(total=Sum('amount'), count=Count('id'))
+    payment_parts = PaymentPart.objects.filter(payment__in=payments)
+    if payment_method:
+        payment_parts = payment_parts.filter(method=payment_method)
+    payment_summary = payment_parts.aggregate(
+        total=Sum('amount'), count=Count('payment_id', distinct=True)
+    )
     received_total = payment_summary['total'] or Decimal('0')
     payment_count = payment_summary['count'] or 0
     average_payment = received_total / payment_count if payment_count else Decimal('0')
@@ -109,9 +114,11 @@ def cash_report_view(request):
     method_rows = []
     method_aggregates = {
         row['method']: row
-        for row in payments.values('method').annotate(total=Sum('amount'), count=Count('id'))
+        for row in payment_parts.values('method').annotate(
+            total=Sum('amount'), count=Count('payment_id', distinct=True)
+        )
     }
-    for method, label in Payment.Method.choices:
+    for method, label in PaymentPart.Method.choices:
         row = method_aggregates.get(method, {})
         amount = row.get('total') or Decimal('0')
         method_rows.append({
@@ -177,7 +184,7 @@ def cash_report_view(request):
         'products': Product.objects.filter(is_active=True).order_by('name'),
         'categories': Category.objects.filter(is_active=True).order_by('name'),
         'receivers': User.objects.filter(received_payments__isnull=False).distinct().order_by('name'),
-        'payment_methods': Payment.Method.choices,
+        'payment_methods': PaymentPart.Method.choices,
         'order_types': Order.Type.choices,
         'selected_product': selected_product,
         'selected_category': selected_category,
@@ -264,15 +271,17 @@ def product_report_view(request):
     for row in category_rows:
         row['share'] = round(row['revenue'] / revenue_total * 100, 1) if revenue_total else 0
 
-    method_labels = dict(Payment.Method.choices)
+    method_labels = dict(PaymentPart.Method.choices)
     method_rows = list(
-        report_items.values('payment__method')
-        .annotate(quantity=Sum('quantity'), revenue=Sum('total_price'))
+        PaymentPart.objects.filter(payment_id__in=report_items.values('payment_id'))
+        .values('method')
+        .annotate(quantity=Count('payment_id', distinct=True), revenue=Sum('amount'))
         .order_by('-revenue')
     )
+    method_revenue_total = sum((row['revenue'] for row in method_rows), Decimal('0'))
     for row in method_rows:
-        row['label'] = method_labels.get(row['payment__method'], row['payment__method'])
-        row['share'] = round(row['revenue'] / revenue_total * 100, 1) if revenue_total else 0
+        row['label'] = method_labels.get(row['method'], row['method'])
+        row['share'] = round(row['revenue'] / method_revenue_total * 100, 1) if method_revenue_total else 0
 
     order_type_labels = dict(Order.Type.choices)
     order_type_rows = list(

@@ -54,7 +54,7 @@
     <aside class="payment-panel">
         <p class="eyebrow">To‘lov</p>
         {% if order.is_paid %}
-            <span class="payment-method-mark payment-{{ order.payment.method }}">{{ order.payment.get_method_display }}</span>
+            {% for part in order.payment.parts.all %}<span class="payment-method-mark payment-{{ part.method }}">{{ part.get_method_display }}: {{ part.amount }} so‘m</span>{% endfor %}
             <h2>{{ order.payment.amount }} so‘m</h2>
             <dl class="payment-info">
                 <div><dt>Zakaz jami</dt><dd>{{ order.total_amount }} so‘m</dd></div>
@@ -65,7 +65,7 @@
         {% else %}
             <span class="payment-method-mark unpaid">To‘lanmagan</span>
             <h2>{{ order.total_amount }} so‘m</h2>
-            <p>Zakazni tahrirlab, yopiq holat va to‘lov turini tanlang.</p>
+            <p>To‘lov sahifasida bir yoki bir nechta usul orqali zakazni yoping.</p>
         {% endif %}
         <div class="detail-actions">
             <a class="primary-button" href="{% url 'order-payment' order.pk %}">

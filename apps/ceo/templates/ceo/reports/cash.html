@@ -126,8 +126,8 @@
         <div class="recent-payment-list">
             {% for payment in recent_payments %}
                 <a href="{% url 'order-detail' payment.order_id %}">
-                    <span class="payment-list-icon method-{{ payment.method }}"><i data-lucide="{% if payment.method == 'cash' %}banknote{% elif payment.method == 'card' %}credit-card{% else %}mouse-pointer-click{% endif %}"></i></span>
-                    <span><strong>{{ payment.order.display_code }}</strong><small>{{ payment.paid_at|date:'d.m.Y H:i' }} · {{ payment.get_method_display }}</small></span>
+                    <span class="payment-list-icon"><i data-lucide="wallet-cards"></i></span>
+                    <span><strong>{{ payment.order.display_code }}</strong><small>{{ payment.paid_at|date:'d.m.Y H:i' }} · {{ payment.method_summary }}</small></span>
                     <strong>{{ payment.amount }} so‘m</strong>
                 </a>
             {% empty %}

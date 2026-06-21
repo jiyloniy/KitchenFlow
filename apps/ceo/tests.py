@@ -4,7 +4,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from apps.orders.models import Order, OrderItem
-from apps.payments.models import Payment
+from apps.payments.models import Payment, PaymentPart
 from apps.products.models import Category, Product
 from apps.tables.models import Table, TableCategory
 from apps.users.models import User
@@ -41,32 +41,20 @@ class CeoOrderPaymentTests(TestCase):
         self.order.recalculate_total()
         self.client.force_login(self.user)
 
-    def test_closing_order_from_panel_creates_payment(self):
-        response = self.client.post(reverse('order-update', args=(self.order.pk,)), {
-            'order_type': Order.Type.DINE_IN,
-            'status': Order.Status.CLOSED,
-            'table': self.table.pk,
-            'customer_name': 'Ali',
-            'note': '',
-            'payment_method': Payment.Method.CARD,
-            'payment_amount': '35000.00',
-            'items-TOTAL_FORMS': '1',
-            'items-INITIAL_FORMS': '1',
-            'items-MIN_NUM_FORMS': '0',
-            'items-MAX_NUM_FORMS': '1000',
-            'items-0-id': self.item.pk,
-            'items-0-order': self.order.pk,
-            'items-0-product': self.product.pk,
-            'items-0-quantity': '3',
+    def test_closing_order_from_panel_creates_multi_payment(self):
+        response = self.client.post(reverse('order-payment', args=(self.order.pk,)), {
+            'cash_amount': '10000.00',
+            'click_amount': '10000.00',
+            'terminal_amount': '4000.00',
         })
 
-        self.assertRedirects(response, reverse('order-list'))
+        self.assertRedirects(response, reverse('order-detail', args=(self.order.pk,)))
         self.order.refresh_from_db()
-        self.assertEqual(self.order.payment.method, Payment.Method.CARD)
-        self.assertEqual(self.order.payment.amount, Decimal('35000'))
+        self.assertEqual(self.order.payment.amount, Decimal('24000'))
+        self.assertEqual(self.order.payment.parts.count(), 3)
 
     def test_order_list_and_detail_show_payment_information(self):
-        self.order.complete_payment(Payment.Method.CLICK, Decimal('23000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CLICK, 'amount': Decimal('23000')}], self.user)
 
         list_response = self.client.get(reverse('order-list'))
         detail_response = self.client.get(reverse('order-detail', args=(self.order.pk,)))
@@ -79,19 +67,17 @@ class CeoOrderPaymentTests(TestCase):
         payment_url = reverse('order-payment', args=(self.order.pk,))
 
         create_response = self.client.post(payment_url, {
-            'payment_type': Payment.Method.CASH,
-            'amount': '22000.00',
+            'cash_amount': '22000.00',
         })
         update_response = self.client.post(payment_url, {
-            'payment_type': Payment.Method.CLICK,
-            'amount': '21000.00',
+            'click_amount': '21000.00',
         })
 
         self.assertRedirects(create_response, reverse('order-detail', args=(self.order.pk,)))
         self.assertRedirects(update_response, reverse('order-detail', args=(self.order.pk,)))
         self.assertEqual(Payment.objects.filter(order=self.order).count(), 1)
         payment = Payment.objects.get(order=self.order)
-        self.assertEqual(payment.method, Payment.Method.CLICK)
+        self.assertEqual(payment.parts.get().method, PaymentPart.Method.CLICK)
         self.assertEqual(payment.amount, Decimal('21000'))
 
     def test_order_detail_and_update_show_product_image(self):
@@ -107,7 +93,7 @@ class CeoOrderPaymentTests(TestCase):
         self.assertContains(update_response, 'product-images')
 
     def test_cash_report_uses_payment_item_snapshots_and_product_filter(self):
-        self.order.complete_payment(Payment.Method.CASH, Decimal('23000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CASH, 'amount': Decimal('23000')}], self.user)
 
         response = self.client.get(reverse('cash-report'), {
             'period': 'all',
@@ -123,7 +109,7 @@ class CeoOrderPaymentTests(TestCase):
         self.assertContains(response, 'cash-trend-chart')
 
     def test_product_report_builds_product_category_and_order_breakdowns(self):
-        self.order.complete_payment(Payment.Method.CLICK, Decimal('23000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CLICK, 'amount': Decimal('23000')}], self.user)
 
         response = self.client.get(reverse('product-report'), {
             'period': 'all',
@@ -140,12 +126,12 @@ class CeoOrderPaymentTests(TestCase):
         self.assertContains(response, 'Mahsulotlar bo‘yicha to‘liq statistika')
 
     def test_cash_report_combines_operational_filters(self):
-        self.order.complete_payment(Payment.Method.CASH, Decimal('23000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CASH, 'amount': Decimal('23000')}], self.user)
         filters = {
             'period': 'all',
             'category': 'Taomlar',
             'product': self.product.pk,
-            'method': Payment.Method.CASH,
+            'method': PaymentPart.Method.CASH,
             'order_type': Order.Type.DINE_IN,
             'received_by': self.user.pk,
         }
@@ -158,7 +144,7 @@ class CeoOrderPaymentTests(TestCase):
         self.assertEqual(response.context['active_filters_count'], 5)
         self.assertContains(response, 'method=cash')
 
-        filters['method'] = Payment.Method.CARD
+        filters['method'] = PaymentPart.Method.TERMINAL
         empty_response = self.client.get(reverse('cash-report'), filters)
         self.assertEqual(empty_response.context['received_total'], Decimal('0'))
         self.assertEqual(empty_response.context['payment_count'], 0)

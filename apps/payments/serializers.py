@@ -1,9 +1,16 @@
-from decimal import Decimal
-
 from rest_framework import serializers
 
 from apps.orders.models import Order
-from apps.payments.models import Payment, PaymentItem
+from apps.payments.models import Payment, PaymentItem, PaymentPart
+
+
+class PaymentPartSerializer(serializers.ModelSerializer):
+    method_display = serializers.CharField(source='get_method_display', read_only=True)
+
+    class Meta:
+        model = PaymentPart
+        fields = ('id', 'method', 'method_display', 'amount')
+        read_only_fields = ('id', 'method_display')
 
 
 class PaymentItemSerializer(serializers.ModelSerializer):
@@ -23,8 +30,8 @@ class PaymentItemSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     items = PaymentItemSerializer(many=True, read_only=True)
+    payments = PaymentPartSerializer(source='parts', many=True, read_only=True)
     order_code = serializers.CharField(source='order.display_code', read_only=True)
-    method_display = serializers.CharField(source='get_method_display', read_only=True)
     received_by_name = serializers.CharField(source='received_by.name', read_only=True)
     order_amount = serializers.DecimalField(
         source='order.total_amount', max_digits=14, decimal_places=2, read_only=True
@@ -37,9 +44,8 @@ class PaymentSerializer(serializers.ModelSerializer):
             'id',
             'order',
             'order_code',
-            'method',
-            'method_display',
             'amount',
+            'payments',
             'order_amount',
             'difference_amount',
             'items',
@@ -57,28 +63,15 @@ class PaymentWriteSerializer(serializers.Serializer):
         required=False,
         help_text='To‘lov qilinadigan order ID. Create so‘rovida majburiy.',
     )
-    payment_type = serializers.ChoiceField(
-        choices=Payment.Method.choices,
-        required=False,
-        help_text='To‘lov turi: cash, card yoki click.',
-    )
-    amount = serializers.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        min_value=Decimal('0.01'),
-        required=False,
-        help_text='Real qabul qilingan to‘lov summasi.',
-    )
+    payments = PaymentPartSerializer(many=True, required=False)
 
     def validate(self, attrs):
         if self.instance is None:
             order = attrs.get('order')
             if order is None:
                 raise serializers.ValidationError({'order': 'Order ID majburiy.'})
-            if 'payment_type' not in attrs:
-                raise serializers.ValidationError({'payment_type': 'To‘lov turini tanlang.'})
-            if 'amount' not in attrs:
-                raise serializers.ValidationError({'amount': 'To‘lov summasini kiriting.'})
+            if not attrs.get('payments'):
+                raise serializers.ValidationError({'payments': 'Kamida bitta to‘lov kiriting.'})
             if order.is_paid:
                 raise serializers.ValidationError({
                     'order': 'Bu order uchun payment mavjud. PATCH orqali yangilang.'
@@ -90,23 +83,21 @@ class PaymentWriteSerializer(serializers.Serializer):
             if order and order.pk != self.instance.order_id:
                 raise serializers.ValidationError({'order': 'Payment orderini o‘zgartirib bo‘lmaydi.'})
             if not self.partial:
-                if 'payment_type' not in attrs:
-                    raise serializers.ValidationError({'payment_type': 'To‘lov turini tanlang.'})
-                if 'amount' not in attrs:
-                    raise serializers.ValidationError({'amount': 'To‘lov summasini kiriting.'})
+                if not attrs.get('payments'):
+                    raise serializers.ValidationError({'payments': 'Kamida bitta to‘lov kiriting.'})
+        parts = attrs.get('payments')
+        if parts and len({part['method'] for part in parts}) != len(parts):
+            raise serializers.ValidationError({'payments': 'Bir usulni faqat bir marta kiriting.'})
         return attrs
 
     def create(self, validated_data):
         order = validated_data['order']
         return order.complete_payment(
-            validated_data['payment_type'],
-            validated_data['amount'],
-            validated_data.get('received_by'),
+            validated_data['payments'], validated_data.get('received_by'),
         )
 
     def update(self, instance, validated_data):
         return instance.order.complete_payment(
-            validated_data.get('payment_type', instance.method),
-            validated_data.get('amount', instance.amount),
-            validated_data.get('received_by'),
+            validated_data.get('payments', list(instance.parts.values('method', 'amount'))),
+            validated_data.get('received_by', instance.received_by),
         )

@@ -37,35 +37,18 @@
 
     <form method="post" class="payment-method-form">
         {% csrf_token %}
-        <p class="eyebrow">To‘lov turi</p>
-        <h2>{% if order.is_paid %}To‘lov usulini yangilang{% else %}Qanday to‘lanadi?{% endif %}</h2>
-        <div class="payment-amount-field">
-            <label for="{{ form.amount.id_for_label }}">Qabul qilinadigan summa</label>
-            {{ form.amount }}
-            {% if form.amount.errors %}<div class="form-error">{{ form.amount.errors.0 }}</div>{% endif %}
-        </div>
+        <p class="eyebrow">Multi-payment</p>
+        <h2>{% if order.is_paid %}To‘lovlarni yangilang{% else %}Summani usullar bo‘yicha bo‘ling{% endif %}</h2>
         <div class="payment-difference-row">
             <span>Zakaz jami <strong>{{ order.total_amount }} so‘m</strong></span>
             <span>Farq <strong id="payment-difference">0 so‘m</strong></span>
         </div>
-        {% if form.payment_type.errors %}<div class="form-error">{{ form.payment_type.errors.0 }}</div>{% endif %}
-
         <div class="payment-method-options">
-            {% for radio in form.payment_type %}
-                <label class="payment-method-option payment-option-{{ radio.data.value }}">
-                    {{ radio.tag }}
-                    <span class="payment-option-icon">
-                        {% if radio.data.value == 'cash' %}N{% elif radio.data.value == 'card' %}K{% else %}C{% endif %}
-                    </span>
-                    <span>
-                        <strong>{{ radio.choice_label }}</strong>
-                        <small>
-                            {% if radio.data.value == 'cash' %}Naqd pul orqali{% elif radio.data.value == 'card' %}Bank kartasi orqali{% else %}Click to‘lov tizimi orqali{% endif %}
-                        </small>
-                    </span>
-                </label>
-            {% endfor %}
+            <label class="payment-method-option payment-option-cash"><span class="payment-option-icon">N</span><span><strong>Naqd</strong><small>Naqd qismi</small></span>{{ form.cash_amount }}</label>
+            <label class="payment-method-option payment-option-click"><span class="payment-option-icon">C</span><span><strong>Click</strong><small>Click qismi</small></span>{{ form.click_amount }}</label>
+            <label class="payment-method-option payment-option-terminal"><span class="payment-option-icon">T</span><span><strong>Terminal</strong><small>Terminal qismi</small></span>{{ form.terminal_amount }}</label>
         </div>
+        {% if form.non_field_errors %}<div class="form-error">{{ form.non_field_errors.0 }}</div>{% endif %}
 
         <div class="payment-submit-row">
             <a class="ghost-button" href="{% url 'order-detail' order.pk %}">Bekor qilish</a>
@@ -77,19 +60,20 @@
 </section>
 <script>
     (function () {
-        const amountInput = document.getElementById('id_amount');
+        const amountInputs = [...document.querySelectorAll('.payment-method-options input')];
         const difference = document.getElementById('payment-difference');
         const orderTotal = Number('{{ order.total_amount|stringformat:"f" }}');
-        if (!amountInput || !difference) return;
+        if (!difference) return;
 
         function updateDifference() {
-            const value = Number(amountInput.value || 0) - orderTotal;
+            const paid = amountInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
+            const value = paid - orderTotal;
             difference.textContent = new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
             difference.classList.toggle('negative', value < 0);
             difference.classList.toggle('positive', value > 0);
         }
 
-        amountInput.addEventListener('input', updateDifference);
+        amountInputs.forEach(input => input.addEventListener('input', updateDifference));
         updateDifference();
     })();
 </script>

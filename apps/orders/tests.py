@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from apps.orders.models import Order, OrderItem
-from apps.payments.models import Payment, PaymentItem
+from apps.payments.models import Payment, PaymentItem, PaymentPart
 from apps.products.models import Category, Product
 from apps.tables.models import Table, TableCategory
 from apps.users.models import User
@@ -51,17 +51,20 @@ class PaymentFlowTests(APITestCase):
     def test_close_action_closes_order_and_creates_payment(self):
         response = self.client.post(
             reverse('api-order-close', args=(self.order.pk,)),
-            {'payment_type': Payment.Method.CLICK, 'amount': '48000.00'},
+            {'payments': [
+                {'method': PaymentPart.Method.CLICK, 'amount': '28000.00'},
+                {'method': PaymentPart.Method.CASH, 'amount': '20000.00'},
+            ]},
             format='json',
         )
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.order.refresh_from_db()
         self.assertEqual(self.order.status, Order.Status.CLOSED)
-        self.assertEqual(self.order.payment.method, Payment.Method.CLICK)
         self.assertEqual(self.order.payment.amount, Decimal('48000'))
+        self.assertEqual(self.order.payment.parts.count(), 2)
         self.assertEqual(response.data['payment']['difference_amount'], '-2000.00')
-        self.assertEqual(response.data['payment']['method_display'], 'Click')
+        self.assertEqual(response.data['payment']['payments'][0]['method_display'], 'Click')
         self.assertEqual(len(response.data['payment']['items']), 1)
         self.assertEqual(response.data['payment']['items'][0]['product_name'], 'Osh')
         self.assertEqual(response.data['payment']['items'][0]['total_price'], '50000.00')
@@ -75,7 +78,7 @@ class PaymentFlowTests(APITestCase):
                 'table': self.table.pk,
                 'items': [{'product': self.product.pk, 'quantity': 1}],
                 # Eski clientlar yuborishi mumkin, ammo order endpointi payment yaratmaydi.
-                'payment_method': Payment.Method.CARD,
+                'payment_method': 'terminal',
                 'payment_amount': '25000.00',
             },
             format='json',
@@ -88,7 +91,7 @@ class PaymentFlowTests(APITestCase):
         self.assertIsNone(response.data['payment'])
 
     def test_order_get_returns_payment_details(self):
-        self.order.complete_payment(Payment.Method.CARD, Decimal('49000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.TERMINAL, 'amount': Decimal('49000')}], self.user)
 
         detail_response = self.client.get(
             reverse('api-order-detail', args=(self.order.pk,)),
@@ -96,7 +99,7 @@ class PaymentFlowTests(APITestCase):
         list_response = self.client.get(reverse('api-order-list'))
 
         self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(detail_response.data['payment']['method'], Payment.Method.CARD)
+        self.assertEqual(detail_response.data['payment']['payments'][0]['method'], PaymentPart.Method.TERMINAL)
         self.assertEqual(detail_response.data['payment']['amount'], '49000.00')
         self.assertEqual(detail_response.data['payment']['received_by'], self.user.pk)
         self.assertEqual(detail_response.data['payment']['items'][0]['product_name'], 'Osh')
@@ -104,7 +107,7 @@ class PaymentFlowTests(APITestCase):
         listed_order = next(
             order for order in list_response.data['results'] if order['id'] == self.order.pk
         )
-        self.assertEqual(listed_order['payment']['method'], Payment.Method.CARD)
+        self.assertEqual(listed_order['payment']['payments'][0]['method'], PaymentPart.Method.TERMINAL)
         self.assertEqual(listed_order['payment']['amount'], '49000.00')
 
     def test_cashier_can_close_order_and_update_payment_type(self):
@@ -113,12 +116,12 @@ class PaymentFlowTests(APITestCase):
 
         first_response = self.client.post(
             close_url,
-            {'payment_type': Payment.Method.CLICK, 'amount': '50000.00'},
+            {'payments': [{'method': PaymentPart.Method.CLICK, 'amount': '50000.00'}]},
             format='json',
         )
         second_response = self.client.post(
             close_url,
-            {'payment_type': Payment.Method.CARD, 'amount': '49000.00'},
+            {'payments': [{'method': PaymentPart.Method.TERMINAL, 'amount': '49000.00'}]},
             format='json',
         )
 
@@ -126,7 +129,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(second_response.status_code, status.HTTP_200_OK)
         self.assertEqual(Payment.objects.filter(order=self.order).count(), 1)
         payment = Payment.objects.get(order=self.order)
-        self.assertEqual(payment.method, Payment.Method.CARD)
+        self.assertEqual(payment.parts.get().method, PaymentPart.Method.TERMINAL)
         self.assertEqual(payment.received_by, self.cashier)
 
     def test_cashier_cannot_edit_order_through_crud_endpoint(self):
@@ -152,7 +155,7 @@ class PaymentFlowTests(APITestCase):
         )
 
     def test_payment_amount_updates_when_order_items_change(self):
-        self.order.complete_payment(Payment.Method.CASH, Decimal('50000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CASH, 'amount': Decimal('50000')}], self.user)
         item = self.order.items.get()
         item.quantity = 3
         item.save()
@@ -163,7 +166,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(self.order.payment.amount, Decimal('75000'))
 
     def test_custom_payment_amount_is_preserved_when_order_total_changes(self):
-        self.order.complete_payment(Payment.Method.CASH, Decimal('47000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.CASH, 'amount': Decimal('47000')}], self.user)
         item = self.order.items.get()
         item.quantity = 3
         item.save()
@@ -174,7 +177,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(payment.amount, Decimal('47000'))
 
     def test_payment_item_snapshot_is_not_changed_by_product_price(self):
-        self.order.complete_payment(Payment.Method.CARD, Decimal('50000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.TERMINAL, 'amount': Decimal('50000')}], self.user)
         snapshot = PaymentItem.objects.get(payment=self.order.payment)
 
         self.product.price = Decimal('40000')
@@ -200,7 +203,7 @@ class PaymentFlowTests(APITestCase):
         self.assertFalse(Payment.objects.filter(order=self.order).exists())
 
     def test_paid_order_items_can_be_updated_through_api(self):
-        self.order.complete_payment(Payment.Method.CARD, Decimal('50000'), self.user)
+        self.order.complete_payment([{'method': PaymentPart.Method.TERMINAL, 'amount': Decimal('50000')}], self.user)
         response = self.client.patch(
             reverse('api-order-detail', args=(self.order.pk,)),
             {
@@ -223,15 +226,14 @@ class PaymentFlowTests(APITestCase):
             reverse('api-payment-list'),
             {
                 'order': self.order.pk,
-                'payment_type': Payment.Method.CASH,
-                'amount': '46000.00',
+                'payments': [{'method': PaymentPart.Method.CASH, 'amount': '46000.00'}],
             },
             format='json',
         )
         payment_id = create_response.data['id']
         update_response = self.client.patch(
             reverse('api-payment-detail', args=(payment_id,)),
-            {'payment_type': Payment.Method.CLICK, 'amount': '45500.00'},
+            {'payments': [{'method': PaymentPart.Method.CLICK, 'amount': '45500.00'}]},
             format='json',
         )
         delete_response = self.client.delete(
@@ -240,7 +242,7 @@ class PaymentFlowTests(APITestCase):
 
         self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(update_response.status_code, status.HTTP_200_OK)
-        self.assertEqual(update_response.data['method'], Payment.Method.CLICK)
+        self.assertEqual(update_response.data['payments'][0]['method'], PaymentPart.Method.CLICK)
         self.assertEqual(update_response.data['amount'], '45500.00')
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         self.order.refresh_from_db()

@@ -53,7 +53,7 @@ def order_list_view(request):
     status = request.GET.get('status', 'all')
     order_type = request.GET.get('type', 'all')
     orders = Order.objects.select_related('table', 'payment').prefetch_related(
-        'items__product__images'
+        'items__product__images', 'payment__parts'
     ).order_by('-created_at')
 
     if query:
@@ -83,7 +83,7 @@ def order_list_view(request):
 def order_detail_view(request, pk):
     order = get_object_or_404(
         Order.objects.select_related('table', 'payment__received_by').prefetch_related(
-            'items__product__images'
+            'items__product__images', 'payment__parts'
         ),
         pk=pk,
     )
@@ -98,7 +98,7 @@ def order_detail_view(request, pk):
 def order_payment_view(request, pk):
     order = get_object_or_404(
         Order.objects.select_related('table', 'payment__received_by').prefetch_related(
-            'items__product__images'
+            'items__product__images', 'payment__parts'
         ),
         pk=pk,
     )
@@ -108,9 +108,7 @@ def order_payment_view(request, pk):
         was_paid = order.is_paid
         with transaction.atomic():
             order.complete_payment(
-                form.cleaned_data['payment_type'],
-                form.cleaned_data['amount'],
-                request.user,
+                form.parts, request.user,
             )
         messages.success(
             request,
@@ -137,12 +135,6 @@ def order_create_view(request):
             formset.instance = order
             save_order_items(order, formset)
             order.recalculate_total()
-            if order.status == Order.Status.CLOSED:
-                order.complete_payment(
-                    form.cleaned_data['payment_method'],
-                    form.cleaned_data['payment_amount'],
-                    request.user,
-                )
         messages.success(request, 'Zakaz yaratildi.')
         return redirect('order-list')
 
@@ -169,13 +161,6 @@ def order_update_view(request, pk):
             order = form.save()
             save_order_items(order, formset, replace=True)
             order.recalculate_total()
-            if order.status == Order.Status.CLOSED:
-                method = form.cleaned_data.get('payment_method') or order.payment.method
-                order.complete_payment(
-                    method,
-                    form.cleaned_data['payment_amount'],
-                    request.user,
-                )
         messages.success(request, 'Zakaz yangilandi.')
         return redirect('order-list')
 

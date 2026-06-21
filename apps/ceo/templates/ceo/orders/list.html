@@ -82,9 +82,7 @@
                     <small>Jami summa</small>
                     <strong>{{ order.total_amount }} so‘m</strong>
                     {% if order.is_paid %}
-                        <span class="payment-badge payment-{{ order.payment.method }}">
-                            {{ order.payment.get_method_display }}: {{ order.payment.amount }} so‘m
-                        </span>
+                        <span class="payment-badge">{% for part in order.payment.parts.all %}{{ part.get_method_display }}: {{ part.amount }} so‘m{% if not forloop.last %} + {% endif %}{% endfor %}</span>
                     {% else %}
                         <span class="payment-badge unpaid">To‘lanmagan</span>
                     {% endif %}

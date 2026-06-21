@@ -45,21 +45,6 @@
                         {{ form.note }}
                         {{ form.note.errors }}
                     </div>
-                    <div class="field span-2 payment-method-field" id="payment-method-field">
-                        <div class="form-grid">
-                            <div class="field">
-                                <label for="{{ form.payment_method.id_for_label }}">To‘lov turi</label>
-                                {{ form.payment_method }}
-                                {{ form.payment_method.errors }}
-                            </div>
-                            <div class="field">
-                                <label for="{{ form.payment_amount.id_for_label }}">To‘lanadigan summa</label>
-                                {{ form.payment_amount }}
-                                {{ form.payment_amount.errors }}
-                            </div>
-                        </div>
-                        <small>Zakaz yopilganda to‘lov avtomatik jami summaga yaratiladi.</small>
-                    </div>
                 </div>
 
                 <div class="preview-block">
@@ -119,9 +104,7 @@
                     <p>{% if order and order.table %}{{ order.table.name }}{% else %}Stol tanlanmagan{% endif %}</p>
                     <strong id="live-order-total">{% if order %}{{ order.total_amount }} so‘m{% else %}0 so‘m{% endif %}</strong>
                     {% if order and order.is_paid %}
-                        <span class="payment-badge payment-{{ order.payment.method }}">
-                            {{ order.payment.get_method_display }} orqali to‘langan
-                        </span>
+                        <span class="payment-badge">{{ order.payment.method_summary }}</span>
                     {% endif %}
                 </div>
             </aside>
@@ -166,15 +149,11 @@
         const items = document.getElementById('order-items');
         const template = document.getElementById('empty-order-item-template');
         const totalForms = document.getElementById('id_items-TOTAL_FORMS');
-        const statusField = document.getElementById('id_status');
-        const paymentField = document.getElementById('payment-method-field');
         const liveTotal = document.getElementById('live-order-total');
         const pricesNode = document.getElementById('product-prices');
         const prices = pricesNode ? JSON.parse(pricesNode.textContent) : {};
         const imagesNode = document.getElementById('product-images');
         const productImages = imagesNode ? JSON.parse(imagesNode.textContent) : {};
-        const paymentAmount = document.getElementById('id_payment_amount');
-        let paymentAmountTouched = Boolean(paymentAmount?.value);
 
         function formatMoney(value) {
             return new Intl.NumberFormat('uz-UZ').format(value) + ' so‘m';
@@ -218,13 +197,6 @@
                 }
             });
             if (liveTotal) liveTotal.textContent = formatMoney(total);
-            if (paymentAmount && !paymentAmountTouched) paymentAmount.value = total.toFixed(2);
-        }
-
-        function togglePaymentField() {
-            if (paymentField && statusField) {
-                paymentField.hidden = statusField.value !== 'closed';
-            }
         }
 
         if (!addButton || !items || !template || !totalForms) {
@@ -249,9 +221,6 @@
 
         items.addEventListener('input', updateSummary);
         items.addEventListener('change', updateSummary);
-        statusField?.addEventListener('change', togglePaymentField);
-        paymentAmount?.addEventListener('input', function () { paymentAmountTouched = true; });
-        togglePaymentField();
         updateSummary();
     })();
 </script>

@@ -12,20 +12,21 @@ from rest_framework.viewsets import ModelViewSet
 from apps.orders.models import Order
 from apps.orders.permissions import IsCeoOrCashier, IsCeoOrReadOnly
 from apps.orders.serializers import OrderSerializer
-from apps.payments.models import Payment
+from apps.payments.models import PaymentPart
+
+
+class PaymentPartInputSerializer(serializers.Serializer):
+    method = serializers.ChoiceField(choices=PaymentPart.Method.choices)
+    amount = serializers.DecimalField(max_digits=14, decimal_places=2, min_value=Decimal('0.01'))
 
 
 class CompletePaymentSerializer(serializers.Serializer):
-    payment_type = serializers.ChoiceField(
-        choices=Payment.Method.choices,
-        help_text='cash, card yoki click',
-    )
-    amount = serializers.DecimalField(
-        max_digits=14,
-        decimal_places=2,
-        min_value=Decimal('0.01'),
-        help_text='Real qabul qilingan summa',
-    )
+    payments = PaymentPartInputSerializer(many=True, min_length=1, max_length=3)
+
+    def validate_payments(self, parts):
+        if len({part['method'] for part in parts}) != len(parts):
+            raise serializers.ValidationError('Bir xil to‘lov usulini ikki marta yubormang.')
+        return parts
 
 
 @method_decorator(name='list', decorator=swagger_auto_schema(operation_summary='Orderlar ro‘yxati', tags=('Orders',)))
@@ -42,7 +43,7 @@ class OrderViewSet(ModelViewSet):
     queryset = Order.objects.select_related(
         'table',
         'payment__received_by',
-    ).prefetch_related('items__product__images', 'payment__items').order_by('-created_at')
+    ).prefetch_related('items__product__images', 'payment__items', 'payment__parts').order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = (IsCeoOrReadOnly,)
 
@@ -59,9 +60,7 @@ class OrderViewSet(ModelViewSet):
         try:
             with transaction.atomic():
                 order.complete_payment(
-                    serializer.validated_data['payment_type'],
-                    serializer.validated_data['amount'],
-                    request.user,
+                    serializer.validated_data['payments'], request.user,
                 )
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=status.HTTP_400_BAD_REQUEST)
@@ -71,9 +70,10 @@ class OrderViewSet(ModelViewSet):
 
     @swagger_auto_schema(
         method='post',
-        operation_summary='Zakazni yopish va payment yaratish yoki yangilash',
+        operation_summary='Zakazni multi-payment bilan yopish',
         operation_description=(
-            'Kassir yoki CEO payment_type va amount yuboradi. Mavjud payment bo‘lsa yangilanadi; '
+            'Kassir yoki CEO payments ro‘yxatida cash, click va terminal summalarini yuboradi. '
+            'Mavjud payment bo‘lsa to‘liq yangilanadi; '
             'order itemlari tarixiy PaymentItem snapshotlariga saqlanadi va order detail payment '
             'ma’lumoti bilan qaytadi.'
         ),

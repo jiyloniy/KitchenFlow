@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from apps.payments.models import Payment, PaymentItem
+from apps.payments.models import Payment, PaymentItem, PaymentPart
+
+
+class PaymentPartInline(admin.TabularInline):
+    model = PaymentPart
+    extra = 0
 
 
 class PaymentItemInline(admin.TabularInline):
@@ -19,8 +24,8 @@ class PaymentItemInline(admin.TabularInline):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    list_display = ('order', 'method', 'amount', 'received_by', 'paid_at')
-    list_filter = ('method', 'paid_at')
+    list_display = ('order', 'amount', 'received_by', 'paid_at')
+    list_filter = ('parts__method', 'paid_at')
     search_fields = ('order__code', 'order__customer_name')
     readonly_fields = ('paid_at', 'updated_at')
-    inlines = (PaymentItemInline,)
+    inlines = (PaymentPartInline, PaymentItemInline)
