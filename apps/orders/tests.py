@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 
 from apps.orders.models import Order, OrderItem
 from apps.payments.models import Payment, PaymentItem, PaymentPart
-from apps.products.models import Category, Product
+from apps.products.models import Category, Product, ProductImage
 from apps.tables.models import Table, TableCategory
 from apps.users.models import User
 
@@ -178,14 +178,38 @@ class PaymentFlowTests(APITestCase):
     def test_order_detail_returns_absolute_product_image_url(self):
         self.product.banner_image = 'products/banners/order-test.jpg'
         self.product.save(update_fields=('banner_image', 'updated_at'))
+        ProductImage.objects.create(
+            product=self.product,
+            image='products/gallery/order-gallery-test.jpg',
+        )
 
         response = self.client.get(reverse('api-order-detail', args=(self.order.pk,)))
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        product = response.data['items'][0]['product']
+        self.assertEqual(product['id'], self.product.pk)
+        self.assertEqual(product['category'], self.product.category_id)
+        self.assertEqual(product['category_name'], 'Taomlar')
+        self.assertEqual(product['name'], 'Osh')
+        self.assertEqual(product['price'], '25000.00')
+        self.assertEqual(
+            product['banner_image_url'],
+            'http://testserver/media/products/banners/order-test.jpg',
+        )
+        self.assertEqual(
+            product['gallery_images'][0]['image_url'],
+            'http://testserver/media/products/gallery/order-gallery-test.jpg',
+        )
         self.assertEqual(
             response.data['items'][0]['product_image_url'],
             'http://testserver/media/products/banners/order-test.jpg',
         )
+
+        list_response = self.client.get(reverse('api-order-list'))
+        listed_order = next(
+            order for order in list_response.data['results'] if order['id'] == self.order.pk
+        )
+        self.assertEqual(listed_order['items'][0]['product']['id'], self.product.pk)
 
     def test_payment_amount_updates_when_order_items_change(self):
         self.order.complete_payment([{'method': PaymentPart.Method.CASH, 'amount': Decimal('50000')}], self.user)

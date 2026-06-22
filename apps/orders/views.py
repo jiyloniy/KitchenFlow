@@ -44,7 +44,12 @@ class OrderViewSet(ModelViewSet):
     queryset = Order.objects.select_related(
         'table',
         'payment__received_by',
-    ).prefetch_related('items__product__images', 'payment__items', 'payment__parts').order_by('-created_at')
+    ).prefetch_related(
+        'items__product__category',
+        'items__product__images',
+        'payment__items',
+        'payment__parts',
+    ).order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = (IsCeoOrReadOnly,)
 

@@ -3,9 +3,22 @@ from rest_framework import serializers
 
 from apps.orders.models import Order, OrderItem
 from apps.payments.serializers import PaymentSerializer
+from apps.products.models import Product
+from apps.products.serializers import ProductSerializer
+
+
+class OrderProductField(serializers.PrimaryKeyRelatedField):
+    """Accept a product ID on write and return the complete product on read."""
+
+    def use_pk_only_optimization(self):
+        return False
+
+    def to_representation(self, value):
+        return ProductSerializer(value, context=self.context).data
 
 
 class OrderItemSerializer(serializers.ModelSerializer):
+    product = OrderProductField(queryset=Product.objects.all())
     product_name = serializers.CharField(source='product.name', read_only=True)
     product_image_url = serializers.SerializerMethodField()
     total_price = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
