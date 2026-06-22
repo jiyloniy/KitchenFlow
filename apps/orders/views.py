@@ -56,6 +56,8 @@ class OrderViewSet(ModelViewSet):
     def get_permissions(self):
         if self.action == 'create':
             return (CanCreateOrder(),)
+        if self.action in ('update', 'partial_update', 'destroy'):
+            return (CanCreateOrder(),)
         if self.action == 'close':
             return (IsCeoOrCashier(),)
         return super().get_permissions()
