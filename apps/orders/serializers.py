@@ -48,6 +48,7 @@ class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True)
     payment = PaymentSerializer(read_only=True)
     table_name = serializers.CharField(source='table.name', read_only=True)
+    table_category_name = serializers.CharField(source='table.category.name', read_only=True)
     order_type_display = serializers.CharField(source='get_order_type_display', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
@@ -62,6 +63,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'status_display',
             'table',
             'table_name',
+            'table_category_name',
             'customer_name',
             'note',
             'items',
