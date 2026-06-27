@@ -2,6 +2,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.orders.models import Order, OrderItem
+from apps.orders.table_status import sync_order_table_status
 from apps.payments.serializers import PaymentSerializer
 from apps.products.models import Product
 from apps.products.serializers import ProductSerializer
@@ -106,11 +107,13 @@ class OrderSerializer(serializers.ModelSerializer):
                 unit_price=product.price,
             )
         order.recalculate_total()
+        sync_order_table_status(order)
         return order
 
     @transaction.atomic
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
+        previous_table_id = instance.table_id
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.full_clean()
@@ -127,4 +130,5 @@ class OrderSerializer(serializers.ModelSerializer):
                     unit_price=product.price,
                 )
         instance.recalculate_total()
+        sync_order_table_status(instance, previous_table_id=previous_table_id)
         return instance

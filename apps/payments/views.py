@@ -7,6 +7,7 @@ from rest_framework.viewsets import ModelViewSet
 
 from apps.orders.models import Order
 from apps.orders.permissions import IsCeoOrCashier
+from apps.orders.table_status import sync_order_table_status
 from apps.payments.models import Payment
 from apps.payments.serializers import PaymentSerializer, PaymentWriteSerializer
 
@@ -81,6 +82,7 @@ class PaymentViewSet(ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         payment = serializer.save(received_by=request.user)
+        sync_order_table_status(payment.order)
         return Response(PaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
     @swagger_auto_schema(
@@ -96,6 +98,7 @@ class PaymentViewSet(ModelViewSet):
         serializer = self.get_serializer(payment, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
         payment = serializer.save(received_by=request.user)
+        sync_order_table_status(payment.order)
         return Response(PaymentSerializer(payment).data)
 
     @swagger_auto_schema(
@@ -123,4 +126,5 @@ class PaymentViewSet(ModelViewSet):
             if order.status == Order.Status.CLOSED:
                 order.status = Order.Status.OPEN
                 order.save(update_fields=('status', 'updated_at'))
+            sync_order_table_status(order)
         return Response(status=status.HTTP_204_NO_CONTENT)

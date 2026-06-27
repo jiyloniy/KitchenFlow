@@ -7,6 +7,7 @@ from django.views.decorators.http import require_http_methods
 from apps.ceo.decorators import ceo_required
 from apps.ceo.order_forms import OrderForm, OrderItemFormSet, PaymentForm
 from apps.orders.models import Order, OrderItem
+from apps.orders.table_status import sync_order_table_status
 from apps.products.models import Product
 
 
@@ -110,6 +111,7 @@ def order_payment_view(request, pk):
             order.complete_payment(
                 form.parts, request.user,
             )
+            sync_order_table_status(order)
         messages.success(
             request,
             'To‘lov yangilandi.' if was_paid else 'To‘lov qabul qilindi.',
@@ -135,6 +137,7 @@ def order_create_view(request):
             formset.instance = order
             save_order_items(order, formset)
             order.recalculate_total()
+            sync_order_table_status(order)
         messages.success(request, 'Zakaz yaratildi.')
         return redirect('order-list')
 
@@ -158,9 +161,11 @@ def order_update_view(request, pk):
 
     if request.method == 'POST' and form.is_valid() and formset.is_valid():
         with transaction.atomic():
+            previous_table_id = order.table_id
             order = form.save()
             save_order_items(order, formset, replace=True)
             order.recalculate_total()
+            sync_order_table_status(order, previous_table_id=previous_table_id)
         messages.success(request, 'Zakaz yangilandi.')
         return redirect('order-list')
 
@@ -182,7 +187,9 @@ def order_delete_view(request, pk):
     order = get_object_or_404(Order, pk=pk)
 
     if request.method == 'POST':
+        table_id = order.table_id
         order.delete()
+        sync_order_table_status(order, previous_table_id=table_id)
         messages.success(request, 'Zakaz o‘chirildi.')
         return redirect('order-list')
 

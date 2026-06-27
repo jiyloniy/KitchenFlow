@@ -12,6 +12,7 @@ from rest_framework.viewsets import ModelViewSet
 from apps.orders.models import Order
 from apps.orders.permissions import CanCreateOrder, IsCeoOrCashier, IsCeoOrReadOnly
 from apps.orders.serializers import OrderSerializer
+from apps.orders.table_status import sync_order_table_status
 from apps.payments.models import PaymentPart
 
 
@@ -72,11 +73,17 @@ class OrderViewSet(ModelViewSet):
                 order.complete_payment(
                     serializer.validated_data['payments'], request.user,
                 )
+                sync_order_table_status(order)
         except DjangoValidationError as exc:
             return Response({'detail': exc.messages}, status=status.HTTP_400_BAD_REQUEST)
 
         order.refresh_from_db()
         return Response(self.get_serializer(order).data)
+
+    def perform_destroy(self, instance):
+        table_id = instance.table_id
+        instance.delete()
+        sync_order_table_status(instance, previous_table_id=table_id)
 
     @swagger_auto_schema(
         method='post',

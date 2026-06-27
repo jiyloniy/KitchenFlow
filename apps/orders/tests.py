@@ -95,6 +95,35 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(order.status, Order.Status.OPEN)
         self.assertFalse(Payment.objects.filter(order=order).exists())
         self.assertIsNone(response.data['payment'])
+        self.table.refresh_from_db()
+        self.assertEqual(self.table.status, Table.Status.BUSY)
+
+    def test_close_action_releases_table_when_no_open_orders_remain(self):
+        self.table.status = Table.Status.BUSY
+        self.table.save(update_fields=('status', 'updated_at'))
+
+        response = self.client.post(
+            reverse('api-order-close', args=(self.order.pk,)),
+            {'payments': [{'method': PaymentPart.Method.CASH, 'amount': '50000.00'}]},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.table.refresh_from_db()
+        self.assertEqual(self.table.status, Table.Status.AVAILABLE)
+
+    def test_close_action_keeps_table_busy_when_another_open_order_exists(self):
+        Order.objects.create(table=self.table)
+
+        response = self.client.post(
+            reverse('api-order-close', args=(self.order.pk,)),
+            {'payments': [{'method': PaymentPart.Method.CLICK, 'amount': '50000.00'}]},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.table.refresh_from_db()
+        self.assertEqual(self.table.status, Table.Status.BUSY)
 
     def test_cashier_and_waiter_can_create_orders(self):
         payload = {
@@ -303,5 +332,7 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(update_response.data['amount'], '45500.00')
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
         self.order.refresh_from_db()
+        self.table.refresh_from_db()
         self.assertEqual(self.order.status, Order.Status.OPEN)
+        self.assertEqual(self.table.status, Table.Status.BUSY)
         self.assertFalse(Payment.objects.filter(pk=payment_id).exists())
