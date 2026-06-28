@@ -72,6 +72,24 @@
                     <p>{% if table %}{{ table.category.name }}{% else %}Kategoriya tanlang{% endif %}</p>
                     <strong>{% if table %}{{ table.capacity }} kishi{% else %}Sig‘im{% endif %}</strong>
                 </div>
+                {% if table %}
+                    <div class="table-form-qr">
+                        <div class="qr-display-card">
+                            <img src="{% url 'table-qr-svg' table.pk %}" alt="{{ table.name }} QR kodi">
+                        </div>
+                        <p>{{ qr_url }}</p>
+                        <div class="qr-actions">
+                            <a class="primary-button" href="{% url 'table-detail' table.pk %}">
+                                <i data-lucide="eye"></i>
+                                <span>Batafsil</span>
+                            </a>
+                            <a class="text-button" href="{% url 'table-qr-svg' table.pk %}?download=1">
+                                <i data-lucide="download"></i>
+                                <span>Yuklab olish</span>
+                            </a>
+                        </div>
+                    </div>
+                {% endif %}
             </aside>
         </div>
 

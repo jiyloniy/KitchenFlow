@@ -83,7 +83,27 @@
                 {% else %}
                     <p>Izoh yo‘q.</p>
                 {% endif %}
+                <div class="qr-mini-panel" data-qr-panel>
+                    <div class="qr-mini-head">
+                        <span>QR manzil</span>
+                        <strong>/qr?table={{ table.number }}</strong>
+                    </div>
+                    <div class="qr-mini-code" hidden>
+                        <img data-src="{{ table.qr_svg_url }}" alt="{{ table.name }} QR kodi">
+                    </div>
+                    <div class="qr-actions">
+                        <button type="button" class="ghost-button qr-generate-button" data-qr-generate>
+                            <i data-lucide="qr-code"></i>
+                            <span>QR yaratish</span>
+                        </button>
+                        <a class="text-button" href="{{ table.qr_svg_url }}?download=1">
+                            <i data-lucide="download"></i>
+                            <span>Yuklab olish</span>
+                        </a>
+                    </div>
+                </div>
                 <div class="card-actions">
+                    <a class="primary-button" href="{% url 'table-detail' table.pk %}">Batafsil</a>
                     <a class="text-button" href="{% url 'table-update' table.pk %}">Tahrirlash</a>
                     <a class="danger-button" href="{% url 'table-delete' table.pk %}">O‘chirish</a>
                 </div>
@@ -93,4 +113,20 @@
         {% endfor %}
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ block.super }}
+<script>
+    document.querySelectorAll('[data-qr-generate]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const panel = button.closest('[data-qr-panel]');
+            const code = panel.querySelector('.qr-mini-code');
+            const image = code.querySelector('img');
+            if (!image.src) image.src = image.dataset.src;
+            code.hidden = !code.hidden;
+            button.querySelector('span').textContent = code.hidden ? 'QR yaratish' : 'QR yashirish';
+        });
+    });
+</script>
 {% endblock %}

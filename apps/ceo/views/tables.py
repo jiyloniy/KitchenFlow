@@ -1,11 +1,46 @@
+from io import BytesIO
+from urllib.parse import urlencode
+
 from django.contrib import messages
+from django.http import HttpResponse
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+import qrcode
+from qrcode.image.svg import SvgPathImage
 
 from apps.ceo.decorators import ceo_required
 from apps.ceo.table_forms import TableCategoryForm, TableForm
+from apps.orders.models import Order
 from apps.tables.models import Table, TableCategory
+
+
+def get_table_qr_url(request, table):
+    public_path = f"{reverse('public-table-qr')}?{urlencode({'table': table.number})}"
+    return request.build_absolute_uri(public_path)
+
+
+def with_table_qr_data(request, table):
+    table.qr_url = get_table_qr_url(request, table)
+    table.qr_svg_url = reverse('table-qr-svg', kwargs={'pk': table.pk})
+    return table
+
+
+def render_qr_svg(value):
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
+        image_factory=SvgPathImage,
+    )
+    qr.add_data(value)
+    qr.make(fit=True)
+    image = qr.make_image(attrib={'class': 'table-qr-svg'})
+    buffer = BytesIO()
+    image.save(buffer)
+    return buffer.getvalue()
 
 
 @ceo_required
@@ -101,6 +136,8 @@ def table_list_view(request):
     if status != 'all':
         tables = tables.filter(status=status)
 
+    tables = [with_table_qr_data(request, table) for table in tables]
+
     return render(request, 'ceo/tables/list.html', {
         'active_page': 'tables',
         'tables': tables,
@@ -112,6 +149,58 @@ def table_list_view(request):
         'available_count': Table.objects.filter(status=Table.Status.AVAILABLE).count(),
         'busy_count': Table.objects.filter(status=Table.Status.BUSY).count(),
         'reserved_count': Table.objects.filter(status=Table.Status.RESERVED).count(),
+    })
+
+
+@ceo_required
+def table_detail_view(request, pk):
+    table = get_object_or_404(Table.objects.select_related('category'), pk=pk)
+    with_table_qr_data(request, table)
+    open_order = Order.objects.filter(
+        table=table,
+        order_type=Order.Type.DINE_IN,
+        status=Order.Status.OPEN,
+    ).order_by('-created_at').first()
+
+    return render(request, 'ceo/tables/detail.html', {
+        'active_page': 'tables',
+        'table': table,
+        'qr_url': table.qr_url,
+        'open_order': open_order,
+    })
+
+
+@ceo_required
+def table_qr_svg_view(request, pk):
+    table = get_object_or_404(Table, pk=pk)
+    svg = render_qr_svg(get_table_qr_url(request, table))
+    response = HttpResponse(svg, content_type='image/svg+xml')
+    if request.GET.get('download'):
+        response['Content-Disposition'] = f'attachment; filename="table-{table.number}-qr.svg"'
+    return response
+
+
+def public_table_qr_view(request):
+    table_number = request.GET.get('table', '').strip()
+    table = None
+    order = None
+
+    if table_number.isdigit():
+        table = Table.objects.filter(number=int(table_number), is_active=True).order_by('pk').first()
+
+    if table:
+        order = Order.objects.select_related('table').prefetch_related(
+            'items__product__images'
+        ).filter(
+            table=table,
+            order_type=Order.Type.DINE_IN,
+            status=Order.Status.OPEN,
+        ).order_by('-created_at').first()
+
+    return render(request, 'ceo/qr/table_order.html', {
+        'table_number': table_number,
+        'table': table,
+        'order': order,
     })
 
 
@@ -137,6 +226,7 @@ def table_create_view(request):
 @require_http_methods(['GET', 'POST'])
 def table_update_view(request, pk):
     table = get_object_or_404(Table, pk=pk)
+    with_table_qr_data(request, table)
     form = TableForm(request.POST or None, instance=table)
 
     if request.method == 'POST' and form.is_valid():
@@ -148,6 +238,7 @@ def table_update_view(request, pk):
         'active_page': 'tables',
         'form': form,
         'table': table,
+        'qr_url': table.qr_url,
         'title': 'Stolni tahrirlash',
         'button_text': 'Yangilash',
     })

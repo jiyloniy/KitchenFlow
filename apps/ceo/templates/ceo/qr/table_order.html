@@ -1,0 +1,71 @@
+{% extends 'ceo/base.html' %}
+
+{% block title %}Stol {{ table_number }} zakazi{% endblock %}
+
+{% block body %}
+<main class="public-qr-page">
+    <section class="public-receipt">
+        <div class="public-table-mark">
+            <span>Stol</span>
+            <strong>{% if table %}{{ table.number }}{% else %}{{ table_number|default:'?' }}{% endif %}</strong>
+        </div>
+
+        {% if not table %}
+            <div class="public-empty-state">
+                <p class="eyebrow">QR ma’lumot</p>
+                <h1>Stol topilmadi</h1>
+                <p>QR kodi noto‘g‘ri yoki stol hozir faol emas. Iltimos, xodimga murojaat qiling.</p>
+            </div>
+        {% elif not order %}
+            <div class="public-empty-state">
+                <p class="eyebrow">Zakaz holati</p>
+                <h1>Ochiq zakaz yo‘q</h1>
+                <p>{{ table.name }} uchun hozircha ochiq zakaz ko‘rinmayapti.</p>
+            </div>
+        {% else %}
+            <header class="public-receipt-head">
+                <div>
+                    <p class="eyebrow">Hisob cheki</p>
+                    <h1>{{ order.display_code }}</h1>
+                    <span>{{ order.created_at|date:'d.m.Y, H:i' }}</span>
+                </div>
+                <span class="status-pill order-status-{{ order.status }}">{{ order.get_status_display }}</span>
+            </header>
+
+            <div class="public-order-meta">
+                <div>
+                    <small>Stol</small>
+                    <strong>{{ table.name }}</strong>
+                </div>
+                <div>
+                    <small>Mijoz</small>
+                    <strong>{{ order.customer_name|default:'Ko‘rsatilmagan' }}</strong>
+                </div>
+            </div>
+
+            <div class="public-items">
+                {% for item in order.items.all %}
+                    <div class="public-item">
+                        <div>
+                            <strong>{{ item.product.name }}</strong>
+                            <span>{{ item.quantity }} x {{ item.unit_price|floatformat:0 }} so‘m</span>
+                        </div>
+                        <b>{{ item.total_price|floatformat:0 }} so‘m</b>
+                    </div>
+                {% empty %}
+                    <div class="empty-panel">Mahsulotlar yo‘q.</div>
+                {% endfor %}
+            </div>
+
+            <div class="public-total">
+                <span>Jami</span>
+                <strong>{{ order.total_amount|floatformat:0 }} so‘m</strong>
+            </div>
+
+            {% if order.note %}
+                <p class="public-note"><strong>Izoh:</strong> {{ order.note }}</p>
+            {% endif %}
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

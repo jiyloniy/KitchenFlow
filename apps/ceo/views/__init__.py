@@ -26,8 +26,11 @@ from .tables import (
     table_category_update_view,
     table_create_view,
     table_delete_view,
+    table_detail_view,
     table_list_view,
+    table_qr_svg_view,
     table_update_view,
+    public_table_qr_view,
 )
 from .orders import (
     order_create_view,
@@ -63,8 +66,11 @@ __all__ = [
     'table_category_update_view',
     'table_create_view',
     'table_delete_view',
+    'table_detail_view',
     'table_list_view',
+    'table_qr_svg_view',
     'table_update_view',
+    'public_table_qr_view',
     'order_create_view',
     'order_delete_view',
     'order_detail_view',

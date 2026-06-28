@@ -32,14 +32,19 @@ from apps.ceo.views import (
     table_category_update_view,
     table_create_view,
     table_delete_view,
+    table_detail_view,
     table_list_view,
+    table_qr_svg_view,
     table_update_view,
+    public_table_qr_view,
 )
 
 urlpatterns = [
     path('', panel_login_view, name='panel-login'),
     path('login/', panel_login_view, name='panel-login'),
     path('logout/', panel_logout_view, name='panel-logout'),
+    path('qr', public_table_qr_view, name='public-table-qr'),
+    path('qr/', public_table_qr_view, name='public-table-qr-slash'),
     path('dashboard/', dashboard_view, name='ceo-dashboard'),
     path('dashboard/employees/', employee_list_view, name='employee-list'),
     path('dashboard/employees/create/', employee_create_view, name='employee-create'),
@@ -57,6 +62,8 @@ urlpatterns = [
     path('dashboard/product-images/<int:pk>/delete/', product_image_delete_view, name='product-image-delete'),
     path('dashboard/tables/', table_list_view, name='table-list'),
     path('dashboard/tables/create/', table_create_view, name='table-create'),
+    path('dashboard/tables/<int:pk>/', table_detail_view, name='table-detail'),
+    path('dashboard/tables/<int:pk>/qr.svg', table_qr_svg_view, name='table-qr-svg'),
     path('dashboard/tables/<int:pk>/edit/', table_update_view, name='table-update'),
     path('dashboard/tables/<int:pk>/delete/', table_delete_view, name='table-delete'),
     path('dashboard/table-categories/', table_category_list_view, name='table-category-list'),
