@@ -75,7 +75,7 @@
                 {% if table %}
                     <div class="table-form-qr">
                         <div class="qr-display-card">
-                            <img src="{% url 'table-qr-svg' table.pk %}" alt="{{ table.name }} QR kodi">
+                            <img src="{% url 'table-qr-image' table.pk %}" alt="{{ table.name }} QR kodi">
                         </div>
                         <p>{{ qr_url }}</p>
                         <div class="qr-actions">
@@ -83,7 +83,7 @@
                                 <i data-lucide="eye"></i>
                                 <span>Batafsil</span>
                             </a>
-                            <a class="text-button" href="{% url 'table-qr-svg' table.pk %}?download=1">
+                            <a class="text-button" href="{% url 'table-qr-image' table.pk %}?download=1">
                                 <i data-lucide="download"></i>
                                 <span>Yuklab olish</span>
                             </a>

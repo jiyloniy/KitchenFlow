@@ -28,7 +28,7 @@ from .tables import (
     table_delete_view,
     table_detail_view,
     table_list_view,
-    table_qr_svg_view,
+    table_qr_image_view,
     table_update_view,
     public_table_qr_view,
 )
@@ -68,7 +68,7 @@ __all__ = [
     'table_delete_view',
     'table_detail_view',
     'table_list_view',
-    'table_qr_svg_view',
+    'table_qr_image_view',
     'table_update_view',
     'public_table_qr_view',
     'order_create_view',

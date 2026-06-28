@@ -8,7 +8,6 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 import qrcode
-from qrcode.image.svg import SvgPathImage
 
 from apps.ceo.decorators import ceo_required
 from apps.ceo.table_forms import TableCategoryForm, TableForm
@@ -17,29 +16,28 @@ from apps.tables.models import Table, TableCategory
 
 
 def get_table_qr_url(request, table):
-    public_path = f"{reverse('public-table-qr')}?{urlencode({'table': table.number})}"
+    public_path = f"{reverse('public-table-qr')}?{urlencode({'table': table.pk})}"
     return request.build_absolute_uri(public_path)
 
 
 def with_table_qr_data(request, table):
     table.qr_url = get_table_qr_url(request, table)
-    table.qr_svg_url = reverse('table-qr-svg', kwargs={'pk': table.pk})
+    table.qr_image_url = reverse('table-qr-image', kwargs={'pk': table.pk})
     return table
 
 
-def render_qr_svg(value):
+def render_qr_png(value):
     qr = qrcode.QRCode(
         version=None,
         error_correction=qrcode.constants.ERROR_CORRECT_M,
-        box_size=10,
-        border=2,
-        image_factory=SvgPathImage,
+        box_size=14,
+        border=3,
     )
     qr.add_data(value)
     qr.make(fit=True)
-    image = qr.make_image(attrib={'class': 'table-qr-svg'})
+    image = qr.make_image(fill_color='#132523', back_color='white').convert('RGB')
     buffer = BytesIO()
-    image.save(buffer)
+    image.save(buffer, format='PNG')
     return buffer.getvalue()
 
 
@@ -171,22 +169,22 @@ def table_detail_view(request, pk):
 
 
 @ceo_required
-def table_qr_svg_view(request, pk):
+def table_qr_image_view(request, pk):
     table = get_object_or_404(Table, pk=pk)
-    svg = render_qr_svg(get_table_qr_url(request, table))
-    response = HttpResponse(svg, content_type='image/svg+xml')
+    image = render_qr_png(get_table_qr_url(request, table))
+    response = HttpResponse(image, content_type='image/png')
     if request.GET.get('download'):
-        response['Content-Disposition'] = f'attachment; filename="table-{table.number}-qr.svg"'
+        response['Content-Disposition'] = f'attachment; filename="table-{table.pk}-qr.png"'
     return response
 
 
 def public_table_qr_view(request):
-    table_number = request.GET.get('table', '').strip()
+    table_id = request.GET.get('table', '').strip()
     table = None
     order = None
 
-    if table_number.isdigit():
-        table = Table.objects.filter(number=int(table_number), is_active=True).order_by('pk').first()
+    if table_id.isdigit():
+        table = Table.objects.filter(pk=int(table_id), is_active=True).first()
 
     if table:
         order = Order.objects.select_related('table').prefetch_related(
@@ -198,7 +196,7 @@ def public_table_qr_view(request):
         ).order_by('-created_at').first()
 
     return render(request, 'ceo/qr/table_order.html', {
-        'table_number': table_number,
+        'table_id': table_id,
         'table': table,
         'order': order,
     })

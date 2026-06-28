@@ -86,17 +86,17 @@
                 <div class="qr-mini-panel" data-qr-panel>
                     <div class="qr-mini-head">
                         <span>QR manzil</span>
-                        <strong>/qr?table={{ table.number }}</strong>
+                        <strong>/qr?table={{ table.pk }}</strong>
                     </div>
                     <div class="qr-mini-code" hidden>
-                        <img data-src="{{ table.qr_svg_url }}" alt="{{ table.name }} QR kodi">
+                        <img data-src="{{ table.qr_image_url }}" alt="{{ table.name }} QR kodi">
                     </div>
                     <div class="qr-actions">
                         <button type="button" class="ghost-button qr-generate-button" data-qr-generate>
                             <i data-lucide="qr-code"></i>
                             <span>QR yaratish</span>
                         </button>
-                        <a class="text-button" href="{{ table.qr_svg_url }}?download=1">
+                        <a class="text-button" href="{{ table.qr_image_url }}?download=1">
                             <i data-lucide="download"></i>
                             <span>Yuklab olish</span>
                         </a>

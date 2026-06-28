@@ -4,3 +4,4 @@ djangorestframework-simplejwt==5.5.1
 django-cors-headers==4.9.0
 drf-yasg==1.21.11
 qrcode==8.2
+Pillow==12.2.0

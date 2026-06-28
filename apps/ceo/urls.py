@@ -34,7 +34,7 @@ from apps.ceo.views import (
     table_delete_view,
     table_detail_view,
     table_list_view,
-    table_qr_svg_view,
+    table_qr_image_view,
     table_update_view,
     public_table_qr_view,
 )
@@ -63,7 +63,7 @@ urlpatterns = [
     path('dashboard/tables/', table_list_view, name='table-list'),
     path('dashboard/tables/create/', table_create_view, name='table-create'),
     path('dashboard/tables/<int:pk>/', table_detail_view, name='table-detail'),
-    path('dashboard/tables/<int:pk>/qr.svg', table_qr_svg_view, name='table-qr-svg'),
+    path('dashboard/tables/<int:pk>/qr.png', table_qr_image_view, name='table-qr-image'),
     path('dashboard/tables/<int:pk>/edit/', table_update_view, name='table-update'),
     path('dashboard/tables/<int:pk>/delete/', table_delete_view, name='table-delete'),
     path('dashboard/table-categories/', table_category_list_view, name='table-category-list'),

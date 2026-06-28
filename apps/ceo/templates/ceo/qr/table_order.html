@@ -1,13 +1,13 @@
 {% extends 'ceo/base.html' %}
 
-{% block title %}Stol {{ table_number }} zakazi{% endblock %}
+{% block title %}Stol {{ table_id }} zakazi{% endblock %}
 
 {% block body %}
 <main class="public-qr-page">
     <section class="public-receipt">
         <div class="public-table-mark">
             <span>Stol</span>
-            <strong>{% if table %}{{ table.number }}{% else %}{{ table_number|default:'?' }}{% endif %}</strong>
+            <strong>{% if table %}{{ table.number }}{% else %}?{% endif %}</strong>
         </div>
 
         {% if not table %}

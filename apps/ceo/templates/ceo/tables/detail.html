@@ -48,7 +48,7 @@
         <p class="eyebrow">Mijoz QR kodi</p>
         <h2>Stol {{ table.number }}</h2>
         <div class="qr-display-card large">
-            <img src="{% url 'table-qr-svg' table.pk %}" alt="{{ table.name }} QR kodi">
+            <img src="{% url 'table-qr-image' table.pk %}" alt="{{ table.name }} QR kodi">
         </div>
         <p>Mijoz skaner qilganda shu stolning oxirgi ochiq zakazi kvitansiya ko‘rinishida ochiladi.</p>
         <div class="qr-actions stacked">
@@ -56,7 +56,7 @@
                 <i data-lucide="external-link"></i>
                 <span>QR sahifani ochish</span>
             </a>
-            <a class="text-button" href="{% url 'table-qr-svg' table.pk %}?download=1">
+            <a class="text-button" href="{% url 'table-qr-image' table.pk %}?download=1">
                 <i data-lucide="download"></i>
                 <span>QR yuklab olish</span>
             </a>
