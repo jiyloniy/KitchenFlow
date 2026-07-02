@@ -1,6 +1,8 @@
 from decimal import Decimal
+from datetime import timedelta
 
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -336,3 +338,34 @@ class PaymentFlowTests(APITestCase):
         self.assertEqual(self.order.status, Order.Status.OPEN)
         self.assertEqual(self.table.status, Table.Status.BUSY)
         self.assertFalse(Payment.objects.filter(pk=payment_id).exists())
+
+    def test_order_list_filters_by_created_at_range(self):
+        now = timezone.now()
+        older_order = Order.objects.create(table=self.table, created_at=now - timedelta(days=5))
+        OrderItem.objects.create(
+            order=older_order,
+            product=self.product,
+            quantity=1,
+            unit_price=self.product.price,
+        )
+        older_order.recalculate_total()
+
+        newer_order = Order.objects.create(table=self.table, created_at=now - timedelta(days=1))
+        OrderItem.objects.create(
+            order=newer_order,
+            product=self.product,
+            quantity=1,
+            unit_price=self.product.price,
+        )
+        newer_order.recalculate_total()
+
+        start = (now - timedelta(days=2)).date().isoformat()
+        end = (now + timedelta(days=1)).date().isoformat()
+        response = self.client.get(
+            f"{reverse('api-order-list')}?created_at_from={start}&created_at_to={end}"
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        returned_ids = {order['id'] for order in response.data['results']}
+        self.assertIn(newer_order.pk, returned_ids)
+        self.assertNotIn(older_order.pk, returned_ids)

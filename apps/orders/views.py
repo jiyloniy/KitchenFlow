@@ -1,11 +1,16 @@
+from datetime import datetime, time
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.decorators import method_decorator
+from django.utils.timezone import get_current_timezone, make_aware
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
@@ -30,7 +35,29 @@ class CompletePaymentSerializer(serializers.Serializer):
         return parts
 
 
-@method_decorator(name='list', decorator=swagger_auto_schema(operation_summary='Orderlar ro‘yxati', tags=('Orders',)))
+@method_decorator(
+    name='list',
+    decorator=swagger_auto_schema(
+        operation_summary='Orderlar ro‘yxati',
+        tags=('Orders',),
+        manual_parameters=[
+            openapi.Parameter(
+                'created_at_from',
+                openapi.IN_QUERY,
+                description='Filter orders created on or after this date/time (YYYY-MM-DD or ISO 8601).',
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATETIME,
+            ),
+            openapi.Parameter(
+                'created_at_to',
+                openapi.IN_QUERY,
+                description='Filter orders created on or before this date/time (YYYY-MM-DD or ISO 8601).',
+                type=openapi.TYPE_STRING,
+                format=openapi.FORMAT_DATETIME,
+            ),
+        ],
+    ),
+)
 @method_decorator(name='retrieve', decorator=swagger_auto_schema(operation_summary='Order detail va payment ma’lumoti', tags=('Orders',)))
 @method_decorator(name='create', decorator=swagger_auto_schema(operation_summary='Yangi order yaratish', tags=('Orders',)))
 @method_decorator(name='update', decorator=swagger_auto_schema(operation_summary='Orderni to‘liq yangilash', tags=('Orders',)))
@@ -62,6 +89,39 @@ class OrderViewSet(ModelViewSet):
         if self.action == 'close':
             return (IsCeoOrCashier(),)
         return super().get_permissions()
+
+    def _parse_created_at_param(self, value, *, start_of_day=False, end_of_day=False):
+        parsed = parse_datetime(value)
+        if parsed is None:
+            parsed_date = parse_date(value)
+            if parsed_date is None:
+                raise ParseError(
+                    'created_at_from/created_at_to must be a valid date or datetime string.'
+                )
+            if start_of_day:
+                parsed = datetime.combine(parsed_date, time.min)
+            elif end_of_day:
+                parsed = datetime.combine(parsed_date, time.max)
+            else:
+                parsed = datetime.combine(parsed_date, time.min)
+        if parsed.tzinfo is None:
+            parsed = make_aware(parsed, get_current_timezone())
+        return parsed
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        created_at_from = self.request.query_params.get('created_at_from')
+        created_at_to = self.request.query_params.get('created_at_to')
+
+        if created_at_from:
+            queryset = queryset.filter(
+                created_at__gte=self._parse_created_at_param(created_at_from, start_of_day=True),
+            )
+        if created_at_to:
+            queryset = queryset.filter(
+                created_at__lte=self._parse_created_at_param(created_at_to, end_of_day=True),
+            )
+        return queryset
 
     def _complete_payment(self, request):
         serializer = CompletePaymentSerializer(data=request.data)
